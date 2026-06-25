@@ -24,9 +24,8 @@
             scrollbar-width: none;
         }
 
-        /* 【新功能：滿版列印與PDF下載排版優化】 */
+        /* 滿版列印與PDF下載排版優化 */
         @media print {
-            /* 隱藏所有不需要列印的 UI 元素 */
             header, aside, #selection-banner, .no-print, button, #sidebar-overlay {
                 display: none !important;
             }
@@ -37,27 +36,23 @@
                 padding: 0 !important;
                 margin: 0 !important;
             }
-            /* 解除手機寬度限制，強制 100% 滿版 */
             main {
                 max-width: 100% !important;
                 width: 100% !important;
                 padding: 10mm !important;
                 margin: 0 !important;
             }
-            /* 去除控制列的陰影與外框，僅保留標題文字 */
             .calendar-control-row {
                 border: none !important;
                 box-shadow: none !important;
                 padding: 0 0 15px 0 !important;
                 justify-content: center !important;
             }
-            /* 讓日曆格子自動向下延伸拉高，填滿 A4 紙張 */
             #calendar-grid {
                 min-height: 720px !important;
                 height: auto !important;
                 page-break-inside: avoid;
             }
-            /* 強制瀏覽器在列印時渲染背景顏色與進度標籤膠囊 */
             * {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
@@ -84,6 +79,15 @@
         </div>
         
         <div class="flex items-center gap-2">
+            <div class="bg-[#F2EFEA] p-1 rounded-lg flex gap-1 text-xs font-medium mr-1">
+                <button id="btn-device-mobile" onclick="switchDeviceMode('mobile')" class="px-2.5 py-1.5 rounded-md transition-all duration-200 text-[#7A746B] hover:text-[#4A4A4A]" title="切換至手機比例">
+                    <i class="fa-solid fa-mobile-screen-button"></i>
+                </button>
+                <button id="btn-device-desktop" onclick="switchDeviceMode('desktop')" class="px-2.5 py-1.5 rounded-md transition-all duration-200 text-[#7A746B] hover:text-[#4A4A4A]" title="切換至電腦滿版">
+                    <i class="fa-solid fa-desktop"></i>
+                </button>
+            </div>
+
             <div class="bg-[#F2EFEA] p-1 rounded-lg flex gap-1 text-xs font-medium">
                 <button id="btn-month-view" onclick="switchView('month')" class="px-3 py-1.5 rounded-md transition-all duration-200 bg-white shadow-sm text-[#4A4A4A]">月畫面</button>
                 <button id="btn-week-view" onclick="switchView('week')" class="px-3 py-1.5 rounded-md transition-all duration-200 text-[#7A746B] hover:text-[#4A4A4A]">週畫面</button>
@@ -95,7 +99,7 @@
         </div>
     </header>
 
-    <main class="flex-1 max-w-md mx-auto w-full p-3 flex flex-col gap-3 pb-12">
+    <main id="main-container" class="flex-1 mx-auto w-full p-3 flex flex-col gap-3 pb-12 transition-all duration-300 ease-out">
         
         <div class="calendar-control-row flex justify-between items-center bg-white px-4 py-3 rounded-xl border border-[#E6E2DC] shadow-sm">
             <button onclick="navigateCalendar(-1)" class="no-print w-8 h-8 rounded-full hover:bg-[#F7F5F0] text-[#7A746B] flex items-center justify-center transition-colors">
@@ -193,6 +197,7 @@
         let state = {
             currentDate: new Date(), 
             viewMode: 'month',       
+            deviceMode: 'mobile',    // 【新狀態】mobile (手機比例) 或 desktop (電腦滿版)
             selectedItemId: null,    
             categories: [],          
             items: [],               
@@ -208,6 +213,7 @@
                     state.categories = parsed.categories || [];
                     state.items = parsed.items || [];
                     state.assignments = parsed.assignments || {};
+                    state.deviceMode = parsed.deviceMode || 'mobile'; // 讀取儲存的比例
                 } catch (e) {
                     console.error("讀取儲存失敗", e);
                     loadMockData();
@@ -217,13 +223,17 @@
             }
             state.currentDate = new Date(); 
             saveToStorage();
+            
+            // 初始化比例外觀
+            switchDeviceMode(state.deviceMode);
         }
 
         function saveToStorage() {
             localStorage.setItem('muji_planner_data', JSON.stringify({
                 categories: state.categories,
                 items: state.items,
-                assignments: state.assignments
+                assignments: state.assignments,
+                deviceMode: state.deviceMode // 儲存比例
             }));
         }
 
@@ -238,11 +248,40 @@
                 { id: 'item-3', categoryId: 'cat-2', name: '複習模擬試卷(一)' }
             ];
             state.assignments = {};
+            state.deviceMode = 'mobile';
         }
 
-        // --- 【新功能：數據備份與還原邏輯驅動】 ---
+        // --- 【新功能：切換手機版與電腦滿版比例控制】 ---
+        function switchDeviceMode(mode) {
+            state.deviceMode = mode;
+            const container = document.getElementById('main-container');
+            const btnMobile = document.getElementById('btn-device-mobile');
+            const btnDesktop = document.getElementById('btn-device-desktop');
+
+            if (mode === 'mobile') {
+                // 手機比例：限制最大寬度 max-w-md
+                container.classList.remove('max-w-full', 'px-6');
+                container.classList.add('max-w-md');
+                
+                // 按鈕樣式高亮切換
+                btnMobile.className = "px-2.5 py-1.5 rounded-md transition-all duration-200 bg-white shadow-sm text-[#4A4A4A]";
+                btnDesktop.className = "px-2.5 py-1.5 rounded-md transition-all duration-200 text-[#7A746B] hover:text-[#4A4A4A]";
+            } else {
+                // 電腦滿版比例：寬度 100% 撐滿
+                container.classList.remove('max-w-md');
+                container.classList.add('max-w-full', 'px-6');
+                
+                // 按鈕樣式高亮切換
+                btnDesktop.className = "px-2.5 py-1.5 rounded-md transition-all duration-200 bg-white shadow-sm text-[#4A4A4A]";
+                btnMobile.className = "px-2.5 py-1.5 rounded-md transition-all duration-200 text-[#7A746B] hover:text-[#4A4A4A]";
+            }
+            saveToStorage();
+            renderCalendar(); // 刷新重新繪製以自適應新尺寸
+        }
+
+        // --- 數據備份與還原邏輯驅動 ---
         function downloadBackup() {
-            const dataStr = localStorage.getItem('muji_planner_data') || JSON.stringify({categories:[], items:[], assignments:{}});
+            const dataStr = localStorage.getItem('muji_planner_data') || JSON.stringify({categories:[], items:[], assignments:{}, deviceMode:'mobile'});
             const blob = new Blob([dataStr], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             
@@ -266,19 +305,19 @@
             const file = event.target.files[0];
             if (!file) return;
 
-            showCustomConfirm('警告：上傳此備份檔案將會完全「覆蓋清除」目前手機內的所有安排進度與分類，確定要還原數據嗎？', () => {
+            showCustomConfirm('警告：上傳此備份檔案將會完全「覆蓋清除」目前的所有安排進度與分類，確定要還原數據嗎？', () => {
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     try {
                         const parsed = JSON.parse(e.target.result);
-                        // 驗證結構完整性
                         if (parsed.categories && parsed.items && parsed.assignments) {
                             state.categories = parsed.categories;
                             state.items = parsed.items;
                             state.assignments = parsed.assignments;
+                            state.deviceMode = parsed.deviceMode || 'mobile';
                             saveToStorage();
                             
-                            // 全解析重繪
+                            switchDeviceMode(state.deviceMode);
                             renderSidebar();
                             renderCalendar();
                             toggleSidebar(false);
@@ -288,7 +327,7 @@
                     } catch (err) {
                         alert('還原失敗：無法成功讀取或解析此 JSON 備份檔案。');
                     }
-                    event.target.value = ''; // 清空欄位以便下次重複觸發
+                    event.target.value = ''; 
                 };
                 reader.readAsText(file);
             });
@@ -312,7 +351,7 @@
 
         function closeConfirmModal() {
             document.getElementById('confirm-modal').classList.add('hidden');
-            document.getElementById('backup-file-input').value = ''; // 防止取消後檔案卡死
+            document.getElementById('backup-file-input').value = ''; 
         }
 
         // --- UI 控制：側邊欄 ---
@@ -686,6 +725,7 @@
                 grid.appendChild(cellEl);
             });
 
+            // 如果是週曆模式
             if (state.viewMode === 'week') {
                 grid.className = "grid grid-cols-1 gap-2 flex-1";
                 document.querySelectorAll('#calendar-grid > div').forEach((el, index) => {
