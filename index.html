@@ -197,7 +197,7 @@
         let state = {
             currentDate: new Date(), 
             viewMode: 'month',       
-            deviceMode: 'mobile',    // 【新狀態】mobile (手機比例) 或 desktop (電腦滿版)
+            deviceMode: 'mobile',    
             selectedItemId: null,    
             categories: [],          
             items: [],               
@@ -213,7 +213,7 @@
                     state.categories = parsed.categories || [];
                     state.items = parsed.items || [];
                     state.assignments = parsed.assignments || {};
-                    state.deviceMode = parsed.deviceMode || 'mobile'; // 讀取儲存的比例
+                    state.deviceMode = parsed.deviceMode || 'mobile'; 
                 } catch (e) {
                     console.error("讀取儲存失敗", e);
                     loadMockData();
@@ -223,8 +223,6 @@
             }
             state.currentDate = new Date(); 
             saveToStorage();
-            
-            // 初始化比例外觀
             switchDeviceMode(state.deviceMode);
         }
 
@@ -233,7 +231,7 @@
                 categories: state.categories,
                 items: state.items,
                 assignments: state.assignments,
-                deviceMode: state.deviceMode // 儲存比例
+                deviceMode: state.deviceMode 
             }));
         }
 
@@ -251,7 +249,7 @@
             state.deviceMode = 'mobile';
         }
 
-        // --- 【新功能：切換手機版與電腦滿版比例控制】 ---
+        // --- 切換手機版與電腦滿版比例控制 ---
         function switchDeviceMode(mode) {
             state.deviceMode = mode;
             const container = document.getElementById('main-container');
@@ -259,27 +257,21 @@
             const btnDesktop = document.getElementById('btn-device-desktop');
 
             if (mode === 'mobile') {
-                // 手機比例：限制最大寬度 max-w-md
                 container.classList.remove('max-w-full', 'px-6');
                 container.classList.add('max-w-md');
-                
-                // 按鈕樣式高亮切換
                 btnMobile.className = "px-2.5 py-1.5 rounded-md transition-all duration-200 bg-white shadow-sm text-[#4A4A4A]";
                 btnDesktop.className = "px-2.5 py-1.5 rounded-md transition-all duration-200 text-[#7A746B] hover:text-[#4A4A4A]";
             } else {
-                // 電腦滿版比例：寬度 100% 撐滿
                 container.classList.remove('max-w-md');
                 container.classList.add('max-w-full', 'px-6');
-                
-                // 按鈕樣式高亮切換
                 btnDesktop.className = "px-2.5 py-1.5 rounded-md transition-all duration-200 bg-white shadow-sm text-[#4A4A4A]";
                 btnMobile.className = "px-2.5 py-1.5 rounded-md transition-all duration-200 text-[#7A746B] hover:text-[#4A4A4A]";
             }
             saveToStorage();
-            renderCalendar(); // 刷新重新繪製以自適應新尺寸
+            renderCalendar(); 
         }
 
-        // --- 數據備份與還原邏輯驅動 ---
+        // --- 數據備份與還原邏輯 ---
         function downloadBackup() {
             const dataStr = localStorage.getItem('muji_planner_data') || JSON.stringify({categories:[], items:[], assignments:{}, deviceMode:'mobile'});
             const blob = new Blob([dataStr], { type: 'application/json' });
@@ -333,7 +325,7 @@
             });
         }
 
-        // --- 自訂確認彈窗邏輯驅動 ---
+        // --- 自訂確認彈窗 ---
         function showCustomConfirm(message, actionCallback) {
             document.getElementById('confirm-modal-message').innerText = message;
             const actionBtn = document.getElementById('confirm-modal-action');
@@ -630,11 +622,12 @@
             const todayStr = formatDateStr(new Date());
             let daysArray = [];
 
-            if (state.viewMode === 'month') {
-                const year = state.currentDate.getFullYear();
-                const month = state.currentDate.getMonth();
-                title.innerText = `${year}年 ${String(month + 1).padStart(2, '0')}月`;
+            // 【優化優化：不論月或週視角，統一精確計算與輸出正確年份與月份標題】
+            const year = state.currentDate.getFullYear();
+            const month = state.currentDate.getMonth();
+            title.innerText = `${year}年 ${String(month + 1).padStart(2, '0')}月`;
 
+            if (state.viewMode === 'month') {
                 let firstDayIndex = new Date(year, month, 1).getDay();
                 firstDayIndex = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
 
@@ -655,7 +648,6 @@
                     daysArray.push({ date: d, isCurrentMonth: false });
                 }
             } else {
-                title.innerText = `${state.currentDate.getFullYear()}年 核心週安排`;
                 const currentDay = state.currentDate.getDay();
                 const distanceToMonday = currentDay === 0 ? -6 : 1 - currentDay;
                 const monday = new Date(state.currentDate);
