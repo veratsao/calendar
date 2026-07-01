@@ -420,6 +420,35 @@
             });
         }
 
+        // --- 【新增功能：修改分類與項目的名稱】 ---
+        function editCategory(catId, event) {
+            if (event) event.stopPropagation();
+            const cat = state.categories.find(c => c.id === catId);
+            if (!cat) return;
+            
+            const newName = prompt("請輸入新的分類名稱：", cat.name);
+            if (newName && newName.trim()) {
+                cat.name = newName.trim();
+                saveToStorage();
+                renderSidebar();
+                renderCalendar();
+            }
+        }
+
+        function editItem(itemId, event) {
+            if (event) event.stopPropagation();
+            const item = state.items.find(i => i.id === itemId);
+            if (!item) return;
+
+            const newName = prompt("請輸入新的項目進度名稱：", item.name);
+            if (newName && newName.trim()) {
+                item.name = newName.trim();
+                saveToStorage();
+                renderSidebar();
+                renderCalendar();
+            }
+        }
+
         // --- 核心邏輯：新增/刪除分類與項目 ---
         function addCategory() {
             const input = document.getElementById('new-category-input');
@@ -589,9 +618,14 @@
                                     <i class="fa-regular fa-circle-dot text-xs text-[#A39E93]"></i>
                                     <span class="truncate">${item.name}</span>
                                 </span>
-                                <button onclick="deleteItem('${item.id}', event)" class="text-[#C9A297] hover:text-[#B87C67] p-2 text-xs transition-opacity">
-                                    <i class="fa-regular fa-trash-can"></i>
-                                </button>
+                                <div class="flex items-center gap-1.5 no-print">
+                                    <button onclick="editItem('${item.id}', event)" class="text-[#7A746B] hover:text-[#4A4A4A] p-1 text-xs" title="修改名稱">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </button>
+                                    <button onclick="deleteItem('${item.id}', event)" class="text-[#C9A297] hover:text-[#B87C67] p-1 text-xs" title="刪除項目">
+                                        <i class="fa-regular fa-trash-can"></i>
+                                    </button>
+                                </div>
                             </div>
                         `;
                     });
@@ -602,6 +636,7 @@
                         <span class="truncate flex items-center gap-1.5"><i class="fa-solid fa-tags text-[#A69F92]"></i> ${cat.name}</span>
                         <div class="flex gap-1">
                             <button onclick="openItemModal('${cat.id}', '${cat.name}')" class="text-[#8A9A86] hover:text-[#6F7D6C] p-1" title="新增項目"><i class="fa-solid fa-plus-circle text-sm"></i></button>
+                            <button onclick="editCategory('${cat.id}', event)" class="text-[#7A746B] hover:text-[#4A4A4A] p-1" title="修改分類名稱"><i class="fa-solid fa-pen text-sm"></i></button>
                             <button onclick="deleteCategory('${cat.id}', event)" class="text-[#C9A297] hover:text-[#B87C67] p-1" title="刪除分類"><i class="fa-solid fa-circle-minus text-sm"></i></button>
                         </div>
                     </div>
@@ -622,7 +657,6 @@
             const todayStr = formatDateStr(new Date());
             let daysArray = [];
 
-            // 【優化優化：不論月或週視角，統一精確計算與輸出正確年份與月份標題】
             const year = state.currentDate.getFullYear();
             const month = state.currentDate.getMonth();
             title.innerText = `${year}年 ${String(month + 1).padStart(2, '0')}月`;
@@ -717,7 +751,7 @@
                 grid.appendChild(cellEl);
             });
 
-            // 如果是週曆模式
+            // 【優化優化：如果是週曆模式】
             if (state.viewMode === 'week') {
                 grid.className = "grid grid-cols-1 gap-2 flex-1";
                 document.querySelectorAll('#calendar-grid > div').forEach((el, index) => {
@@ -741,10 +775,25 @@
                     if (state.selectedItemId) {
                         el.setAttribute('onclick', `handleDateClick('${dateStr}')`);
                     }
-                    el.querySelectorAll('.space-y-0\\.5 > div').forEach(t => {
-                        t.classList.remove('text-[9px]');
-                        t.classList.add('text-xs', 'p-1.5');
-                    });
+                    
+                    // 【新樣式注入】將週曆中的項目容器從垂直(flex-col)改為橫向併排(flex-row flex-wrap)
+                    const taskContainer = el.querySelector('.space-y-0\\.5');
+                    if (taskContainer) {
+                        taskContainer.classList.remove('flex-col', 'space-y-0.5');
+                        taskContainer.classList.add('flex-row', 'flex-wrap', 'gap-2', 'items-center');
+                        
+                        // 將字體放大 3~4 倍 (由 text-[9px] 調大至 text-2xl)，並等比例增加內邊距與刪除鈕大小
+                        taskContainer.querySelectorAll(':scope > div').forEach(t => {
+                            t.classList.remove('text-[9px]', 'px-1', 'py-0.5');
+                            t.classList.add('text-2xl', 'px-4', 'py-2', 'font-medium', 'pr-9', 'rounded-lg', 'shadow-xs');
+                            
+                            const closeBtn = t.querySelector('button');
+                            if (closeBtn) {
+                                closeBtn.classList.remove('text-[8px]');
+                                closeBtn.classList.add('text-base', 'right-2.5');
+                            }
+                        });
+                    }
                 });
             } else {
                 grid.className = "grid grid-cols-7 gap-1 flex-1 min-h-[380px]";
