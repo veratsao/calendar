@@ -2,10 +2,13 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日課便帖 | 每日進度安排</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>日課便帖 | 雲端同步增強版</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet">
@@ -13,243 +16,512 @@
     <style>
         body {
             font-family: 'Noto Sans TC', 'Zen Maru Gothic', sans-serif;
-            background-color: #F7F5F0; /* 無印風經典微偏黃暖白 */
-            color: #4A4A4A; /* 深碳灰 */
+            background-color: #F7F5F0;
+            color: #4A4A4A;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
         }
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* 拖曳樣式 */
+        .task-card {
+            touch-action: none;
+            cursor: grab;
         }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
+        .task-card:active {
+            cursor: grabbing;
+        }
+        .task-card.dragging {
+            opacity: 0.35 !important;
+        }
+        
+        .drag-clone {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.9;
+            transform: scale(1.05);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+            transition: none;
         }
 
-        /* 滿版列印與PDF下載排版優化 */
+        .drag-over-target {
+            background-color: #EAE6DF !important;
+            border-style: dashed !important;
+            border-color: #8A9A86 !important;
+        }
+
         @media print {
-            header, aside, #selection-banner, .no-print, button, #sidebar-overlay {
-                display: none !important;
-            }
-            body {
-                background-color: #ffffff !important;
-                background: #ffffff !important;
-                color: #000000 !important;
-                padding: 0 !important;
-                margin: 0 !important;
-            }
-            main {
-                max-width: 100% !important;
-                width: 100% !important;
-                padding: 10mm !important;
-                margin: 0 !important;
-            }
-            .calendar-control-row {
-                border: none !important;
-                box-shadow: none !important;
-                padding: 0 0 15px 0 !important;
-                justify-content: center !important;
-            }
-            #calendar-grid {
-                min-height: 720px !important;
-                height: auto !important;
-                page-break-inside: avoid;
-            }
-            * {
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
+            header, aside, .no-print, button, #sidebar-overlay { display: none !important; }
+            body { background-color: #ffffff !important; color: #000000 !important; padding: 0 !important; margin: 0 !important; }
+            main { max-width: 100% !important; width: 100% !important; padding: 5mm !important; margin: 0 !important; }
+            .calendar-control-row { border: none !important; box-shadow: none !important; padding: 0 0 10px 0 !important; justify-content: center !important; }
+            #calendar-grid { min-height: 720px !important; height: auto !important; page-break-inside: avoid; }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
     </style>
 </head>
 <body class="min-h-screen flex flex-col antialiased selection:bg-[#8A9A86] selection:text-white">
 
-    <div id="selection-banner" class="hidden fixed top-0 left-0 right-0 bg-[#8A9A86] text-white text-center py-2.5 px-4 z-50 shadow-md text-sm tracking-wider flex justify-between items-center transition-all duration-300 animate-slide-down">
-        <span class="mx-auto flex items-center gap-2">
-            <i class="fa-solid fa-thumbtack animate-pulse"></i>
-            排程模式：請點擊日曆格來安排 <strong id="selected-item-name-banner" class="underline decoration-2 underline-offset-4"></strong>
-        </span>
-        <button onclick="cancelSelection()" class="text-white/80 hover:text-white text-lg px-2"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-
-    <header class="bg-white border-b border-[#E6E2DC] sticky top-0 z-30 px-4 py-3 flex justify-between items-center shadow-sm">
+    <!-- Header 頂部導航 -->
+    <header class="bg-white/90 backdrop-blur-md border-b border-[#E6E2DC] sticky top-0 z-30 px-4 py-3 flex justify-between items-center shadow-2xs">
         <div class="flex items-center gap-3">
-            <button onclick="toggleSidebar(true)" class="text-[#7A746B] hover:text-[#4A4A4A] p-2 rounded-md hover:bg-[#F7F5F0] transition-colors focus:outline-none">
-                <i class="fa-solid fa-bars text-xl"></i>
+            <button onclick="toggleSidebar(true)" class="text-[#7A746B] hover:text-[#4A4A4A] p-2 rounded-lg hover:bg-[#F7F5F0] transition-colors focus:outline-none">
+                <i class="fa-solid fa-sliders text-lg"></i>
             </button>
-            <h1 class="text-lg font-medium tracking-widest text-[#5C5750] font-['Zen_Maru_Gothic']">日課便帖</h1>
+            <h1 class="text-lg font-medium tracking-widest text-[#5C5750] font-['Zen_Maru_Gothic'] flex items-center gap-2">
+                <span>日課便帖</span>
+                <span id="daily-completion-badge" class="text-xs bg-[#8A9A86]/10 text-[#8A9A86] font-semibold px-2.5 py-0.5 rounded-full border border-[#8A9A86]/20">0% 完成</span>
+                <span id="cloud-status-indicator" class="text-xs text-gray-400" title="雲端同步狀態">
+                    <i class="fa-solid fa-cloud"></i>
+                </span>
+            </h1>
         </div>
         
         <div class="flex items-center gap-2">
-            <div class="bg-[#F2EFEA] p-1 rounded-lg flex gap-1 text-xs font-medium mr-1">
-                <button id="btn-device-mobile" onclick="switchDeviceMode('mobile')" class="px-2.5 py-1.5 rounded-md transition-all duration-200 text-[#7A746B] hover:text-[#4A4A4A]" title="切換至手機比例">
+            <div class="bg-[#F2EFEA] p-1 rounded-lg flex gap-1 text-xs font-medium">
+                <button id="btn-device-mobile" onclick="switchDeviceMode('mobile')" class="px-2.5 py-1.5 rounded-md transition-all text-[#7A746B] hover:text-[#4A4A4A]">
                     <i class="fa-solid fa-mobile-screen-button"></i>
                 </button>
-                <button id="btn-device-desktop" onclick="switchDeviceMode('desktop')" class="px-2.5 py-1.5 rounded-md transition-all duration-200 text-[#7A746B] hover:text-[#4A4A4A]" title="切換至電腦滿版">
+                <button id="btn-device-desktop" onclick="switchDeviceMode('desktop')" class="px-2.5 py-1.5 rounded-md transition-all text-[#7A746B] hover:text-[#4A4A4A]">
                     <i class="fa-solid fa-desktop"></i>
                 </button>
             </div>
 
             <div class="bg-[#F2EFEA] p-1 rounded-lg flex gap-1 text-xs font-medium">
-                <button id="btn-month-view" onclick="switchView('month')" class="px-3 py-1.5 rounded-md transition-all duration-200 bg-white shadow-sm text-[#4A4A4A]">月畫面</button>
-                <button id="btn-week-view" onclick="switchView('week')" class="px-3 py-1.5 rounded-md transition-all duration-200 text-[#7A746B] hover:text-[#4A4A4A]">週畫面</button>
+                <button id="btn-month-view" onclick="switchView('month')" class="px-3 py-1.5 rounded-md transition-all bg-white shadow-2xs text-[#4A4A4A]">月</button>
+                <button id="btn-week-view" onclick="switchView('week')" class="px-3 py-1.5 rounded-md transition-all text-[#7A746B] hover:text-[#4A4A4A]">週</button>
             </div>
             
-            <button onclick="window.print()" class="bg-white border border-[#E6E2DC] p-2 rounded-lg text-[#7A746B] hover:text-[#4A4A4A] hover:bg-[#F7F5F0] transition-colors shadow-2xs flex items-center justify-center" title="滿版下載列印表格 / 儲存PDF">
+            <button onclick="window.print()" class="bg-white border border-[#E6E2DC] p-2 rounded-lg text-[#7A746B] hover:text-[#4A4A4A] hover:bg-[#F7F5F0] transition-colors shadow-2xs">
                 <i class="fa-solid fa-print text-sm"></i>
             </button>
         </div>
     </header>
 
-    <main id="main-container" class="flex-1 mx-auto w-full p-3 flex flex-col gap-3 pb-12 transition-all duration-300 ease-out">
+    <!-- 主內容區 -->
+    <main id="main-container" class="flex-1 mx-auto w-full p-3 flex flex-col gap-3 pb-12 transition-all duration-300">
         
-        <div class="calendar-control-row flex justify-between items-center bg-white px-4 py-3 rounded-xl border border-[#E6E2DC] shadow-sm">
-            <button onclick="navigateCalendar(-1)" class="no-print w-8 h-8 rounded-full hover:bg-[#F7F5F0] text-[#7A746B] flex items-center justify-center transition-colors">
-                <i class="fa-solid fa-chevron-left text-sm"></i>
+        <div class="calendar-control-row flex justify-between items-center bg-white px-4 py-2.5 rounded-xl border border-[#E6E2DC] shadow-2xs">
+            <button onclick="navigateCalendar(-1)" class="no-print w-8 h-8 rounded-full hover:bg-[#F7F5F0] text-[#7A746B] flex items-center justify-center">
+                <i class="fa-solid fa-chevron-left text-xs"></i>
             </button>
-            <h2 id="calendar-title" class="font-medium text-[#4A4A4A] tracking-wider text-center">2026年 06月</h2>
-            <button onclick="navigateCalendar(1)" class="no-print w-8 h-8 rounded-full hover:bg-[#F7F5F0] text-[#7A746B] flex items-center justify-center transition-colors">
-                <i class="fa-solid fa-chevron-right text-sm"></i>
+            <div class="text-center">
+                <h2 id="calendar-title" class="font-medium text-[#4A4A4A] tracking-wider text-base">2026年 09月</h2>
+            </div>
+            <button onclick="navigateCalendar(1)" class="no-print w-8 h-8 rounded-full hover:bg-[#F7F5F0] text-[#7A746B] flex items-center justify-center">
+                <i class="fa-solid fa-chevron-right text-xs"></i>
             </button>
         </div>
 
-        <div class="grid grid-cols-7 gap-1 text-center text-xs font-medium text-[#8C867E] tracking-wider px-1">
+        <div id="week-header-row" class="grid grid-cols-7 gap-1 text-center text-sm font-semibold text-[#8C867E] tracking-wider px-1">
             <div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div class="text-[#B87C67]">六</div><div class="text-[#B87C67]">日</div>
         </div>
 
-        <div id="calendar-grid" class="grid grid-cols-7 gap-1 flex-1 min-h-[380px]">
-            </div>
+        <div id="calendar-grid" class="grid grid-cols-7 gap-1.5 flex-1 min-h-[500px]">
+            <!-- 動態渲染 -->
+        </div>
 
     </main>
 
-    <div id="sidebar-overlay" onclick="toggleSidebar(false)" class="hidden fixed inset-0 bg-black/20 backdrop-blur-sm z-40 transition-opacity duration-300 opacity-0"></div>
+    <!-- 側邊 Drawer -->
+    <div id="sidebar-overlay" onclick="toggleSidebar(false)" class="hidden fixed inset-0 bg-black/20 backdrop-blur-xs z-40 transition-opacity duration-300 opacity-0"></div>
     <aside id="sidebar" class="fixed top-0 bottom-0 left-0 w-[85%] max-w-sm bg-[#FBFBF9] border-r border-[#E6E2DC] z-50 transform -translate-x-full transition-transform duration-300 ease-out flex flex-col shadow-2xl">
-        
         <div class="p-4 border-b border-[#E6E2DC] flex justify-between items-center bg-white">
-            <h3 class="font-medium text-[#4A4A4A] flex items-center gap-2 tracking-wide">
-                <i class="fa-solid fa-list-check text-[#8A9A86]"></i> 待安排進度項目
+            <h3 class="font-medium text-[#4A4A4A] flex items-center gap-2 text-sm">
+                <i class="fa-solid fa-sliders text-[#8A9A86]"></i> 偏好設定與雲端備份
             </h3>
             <button onclick="toggleSidebar(false)" class="text-[#7A746B] hover:text-[#4A4A4A] w-8 h-8 rounded-full flex items-center justify-center hover:bg-[#F7F5F0]">
-                <i class="fa-solid fa-xmark text-lg"></i>
+                <i class="fa-solid fa-xmark"></i>
             </button>
         </div>
 
-        <div class="p-4 border-b border-[#E6E2DC] bg-[#F7F5F0]/50">
-            <div class="flex gap-2">
-                <input type="text" id="new-category-input" placeholder="新增學科/分類... (如：數學)" class="flex-1 bg-white border border-[#E6E2DC] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#8A9A86] placeholder-[#B0A9A0]">
-                <button onclick="addCategory()" class="bg-[#8A9A86] text-white px-3.5 rounded-lg text-sm hover:bg-[#768572] transition-colors shadow-sm">
-                    <i class="fa-solid fa-plus"></i>
-                </button>
+        <div class="p-4 space-y-4 flex-1 overflow-y-auto">
+            <!-- 雲端備份設定卡片 -->
+            <div class="bg-white p-4 rounded-xl border border-[#E6E2DC] shadow-2xs space-y-3">
+                <div class="text-xs font-medium text-[#7A746B] flex items-center gap-1.5">
+                    <i class="fa-solid fa-cloud-arrow-up text-[#8A9A86]"></i> Google Apps Script 雲端自動同步
+                </div>
+                <input type="url" id="gas-url-input" placeholder="貼上 GAS Web App URL..." 
+                       class="w-full text-xs p-2 border border-[#E6E2DC] rounded-lg focus:outline-none focus:border-[#8A9A86]">
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="saveGasUrl()" class="bg-[#8A9A86] text-white py-1.5 px-2 rounded-lg text-xs hover:bg-[#788874]">
+                        儲存網址
+                    </button>
+                    <button onclick="syncFromCloud()" class="bg-[#F7F5F0] border border-[#E6E2DC] text-[#5C5750] py-1.5 px-2 rounded-lg text-xs hover:bg-[#EAE6DF]">
+                        從雲端載入
+                    </button>
+                </div>
             </div>
-        </div>
 
-        <div id="sidebar-content" class="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+            <!-- 本地 JSON 備份卡片 -->
+            <div class="bg-white p-4 rounded-xl border border-[#E6E2DC] shadow-2xs space-y-3">
+                <div class="text-xs font-medium text-[#7A746B] flex items-center gap-1.5">
+                    <i class="fa-solid fa-database text-[#8A9A86]"></i> 本地檔案備份與還原
+                </div>
+                <div class="grid grid-cols-2 gap-2 pt-1">
+                    <button onclick="downloadBackup()" class="bg-[#F7F5F0] border border-[#E6E2DC] text-[#5C5750] py-2 px-2 rounded-lg text-xs hover:bg-[#EAE6DF] flex items-center justify-center gap-1 font-medium">
+                        <i class="fa-solid fa-download text-[#8A9A86]"></i> 下載備份
+                    </button>
+                    <button onclick="triggerUploadBackup()" class="bg-[#F7F5F0] border border-[#E6E2DC] text-[#5C5750] py-2 px-2 rounded-lg text-xs hover:bg-[#EAE6DF] flex items-center justify-center gap-1 font-medium">
+                        <i class="fa-solid fa-upload text-[#B87C67]"></i> 上傳還原
+                    </button>
+                </div>
+                <input type="file" id="backup-file-input" accept=".json" class="hidden" onchange="handleUploadBackup(event)">
             </div>
-
-        <div class="p-4 border-t border-[#E6E2DC] bg-[#F7F5F0]/40 space-y-2">
-            <div class="text-xs font-medium text-[#7A746B] flex items-center gap-1">
-                <i class="fa-solid fa-database text-[#A69F92]"></i> 數據備份與還原庫
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-                <button onclick="downloadBackup()" class="bg-white border border-[#E6E2DC] text-[#6E685E] py-2 px-2 rounded-lg text-xs hover:bg-[#F2EFEA] transition-colors flex items-center justify-center gap-1 shadow-2xs">
-                    <i class="fa-solid fa-download text-[#8A9A86]"></i> 下載備份檔
-                </button>
-                <button onclick="triggerUploadBackup()" class="bg-white border border-[#E6E2DC] text-[#6E685E] py-2 px-2 rounded-lg text-xs hover:bg-[#F2EFEA] transition-colors flex items-center justify-center gap-1 shadow-2xs">
-                    <i class="fa-solid fa-upload text-[#B87C67]"></i> 上傳還原檔
-                </button>
-            </div>
-            <input type="file" id="backup-file-input" accept=".json" class="hidden" onchange="handleUploadBackup(event)">
-        </div>
-
-        <div class="p-4 border-t border-[#E6E2DC] text-xs text-[#999288] bg-white leading-relaxed">
-            <p><i class="fa-solid fa-circle-info mr-1"></i> 提示：已安排至日曆的項目會自動從此處隱藏，若由日曆中移除則會再度退回此列表。</p>
         </div>
     </aside>
 
-    <div id="item-modal" class="hidden fixed inset-0 bg-black/30 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl w-full max-w-xs border border-[#E6E2DC] shadow-xl p-5 animate-scale-in">
-            <h4 class="font-medium text-[#4A4A4A] mb-3 text-sm flex items-center gap-2">
-                <i class="fa-solid fa-folder-open text-[#A69F92]"></i> 在「<span id="modal-category-name"></span>」中新增項目
-            </h4>
-            <input type="hidden" id="modal-category-id">
-            <input type="text" id="new-item-input" placeholder="輸入具體進度... (如：講義P.1-10)" class="w-full bg-[#F7F5F0] border border-[#E6E2DC] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#8A9A86] mb-4">
-            <div class="flex justify-end gap-2 text-xs font-medium">
-                <button onclick="closeItemModal()" class="px-3 py-2 rounded-lg text-[#7A746B] hover:bg-[#F7F5F0]">取消</button>
-                <button onclick="addItem()" class="px-4 py-2 rounded-lg bg-[#8A9A86] text-white hover:bg-[#768572] shadow-sm">確定新增</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="confirm-modal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-xs z-header flex items-center justify-center p-4" style="z-index: 60;">
-        <div class="bg-white rounded-xl w-full max-w-xs border border-[#E6E2DC] shadow-xl p-5 animate-scale-in">
-            <h4 class="font-medium text-[#B87C67] mb-2 text-sm flex items-center gap-2">
-                <i class="fa-solid fa-triangle-exclamation"></i> 確認操作
-            </h4>
-            <p id="confirm-modal-message" class="text-xs text-[#6E685E] mb-5 leading-relaxed">你確定要執行此操作嗎？</p>
-            <div class="flex justify-end gap-2 text-xs font-medium">
-                <button onclick="closeConfirmModal()" class="px-3 py-2 rounded-lg text-[#7A746B] hover:bg-[#F7F5F0]">取消</button>
-                <button id="confirm-modal-action" class="px-4 py-2 rounded-lg bg-[#B87C67] text-white hover:bg-[#A66B58] shadow-sm">確認執行</button>
-            </div>
-        </div>
-    </div>
-
-
     <script>
-        // --- 核心資料狀態 ---
-        let state = {
-            currentDate: new Date(), 
-            viewMode: 'month',       
-            deviceMode: 'mobile',    
-            selectedItemId: null,    
-            categories: [],          
-            items: [],               
-            assignments: {}          
+        // --- 科目顏色對照表 (莫蘭迪色系) ---
+        const SUBJECT_COLORS = {
+            '國文': 'bg-[#F2E3E1] border-[#E8C5C1] text-[#7A4A46]',
+            '英文': 'bg-[#E3EBF2] border-[#C2D4E3] text-[#41627E]',
+            '數學': 'bg-[#E2F0D9] border-[#C3E2B2] text-[#3D632A]',
+            '自然': 'bg-[#E5F2F0] border-[#C3E2DC] text-[#376860]',
+            '社會': 'bg-[#FCF2E3] border-[#F8DCB8] text-[#7E5723]',
+            '物理': 'bg-[#E8E6F2] border-[#CFCBE5] text-[#4F4673]',
+            '化學': 'bg-[#F5E6F2] border-[#E8CBE5] text-[#73466F]',
+            '歷史': 'bg-[#F7ECE1] border-[#EAD5C3] text-[#704D31]',
+            '地理': 'bg-[#EAF0E6] border-[#D1E0C9] text-[#435E34]',
+            'default': 'bg-[#F0F2EE] border-[#D6DDD4] text-[#4A554A] hover:border-[#8A9A86]'
         };
 
-        // --- 初始化讀取與儲存 ---
+        let state = {
+            currentDate: new Date(),
+            viewMode: 'month',
+            deviceMode: 'mobile',
+            assignments: {},
+            gasUrl: '',
+            
+            dragData: {
+                assignId: null,
+                fromDateStr: null,
+                cloneEl: null,
+                lastTargetCell: null
+            }
+        };
+
         function initStorage() {
-            const localData = localStorage.getItem('muji_planner_data');
+            const localData = localStorage.getItem('muji_planner_ux_data');
+            state.gasUrl = localStorage.getItem('muji_planner_gas_url') || '';
+            if (state.gasUrl) {
+                document.getElementById('gas-url-input').value = state.gasUrl;
+            }
+
             if (localData) {
                 try {
                     const parsed = JSON.parse(localData);
-                    state.categories = parsed.categories || [];
-                    state.items = parsed.items || [];
                     state.assignments = parsed.assignments || {};
-                    state.deviceMode = parsed.deviceMode || 'mobile'; 
-                } catch (e) {
-                    console.error("讀取儲存失敗", e);
-                    loadMockData();
-                }
+                    state.deviceMode = parsed.deviceMode || 'mobile';
+                } catch (e) { loadMockData(); }
             } else {
                 loadMockData();
             }
-            state.currentDate = new Date(); 
-            saveToStorage();
+            state.currentDate = new Date();
+            saveToStorage(false); // 初始時不觸發雲端，避免覆蓋
             switchDeviceMode(state.deviceMode);
         }
 
-        function saveToStorage() {
-            localStorage.setItem('muji_planner_data', JSON.stringify({
-                categories: state.categories,
-                items: state.items,
+        function saveToStorage(triggerCloud = true) {
+            localStorage.setItem('muji_planner_ux_data', JSON.stringify({
                 assignments: state.assignments,
-                deviceMode: state.deviceMode 
+                deviceMode: state.deviceMode
             }));
+            updateCompletionBadge();
+
+            if (triggerCloud && state.gasUrl) {
+                syncToCloud();
+            }
         }
 
         function loadMockData() {
-            state.categories = [
-                { id: 'cat-1', name: '英文共同' },
-                { id: 'cat-2', name: '專業科目' }
-            ];
-            state.items = [
-                { id: 'item-1', categoryId: 'cat-1', name: '背單字 Unit 5' },
-                { id: 'item-2', categoryId: 'cat-1', name: '閱讀測驗 2 篇' },
-                { id: 'item-3', categoryId: 'cat-2', name: '複習模擬試卷(一)' }
-            ];
+            const todayStr = formatDateStr(new Date());
             state.assignments = {};
+            state.assignments[todayStr] = [
+                { id: 'assign-1', name: '數學: 拖曳至其他日期', done: false },
+                { id: 'assign-2', name: '英文: 雙擊可修改內容', done: true }
+            ];
             state.deviceMode = 'mobile';
         }
 
-        // --- 切換手機版與電腦滿版比例控制 ---
+        // --- 科目顏色識別 ---
+        function getSubjectColorClass(name, done) {
+            if (done) return 'bg-[#EAE6DF] border-[#D6D2C9] text-[#B0A9A0] line-through decoration-1';
+            
+            for (let sub in SUBJECT_COLORS) {
+                if (sub !== 'default' && (name.includes(sub) || name.startsWith(`[${sub}]`) || name.startsWith(`${sub}:`))) {
+                    return SUBJECT_COLORS[sub];
+                }
+            }
+            return SUBJECT_COLORS['default'];
+        }
+
+        // --- 雲端同步 GAS ---
+        function saveGasUrl() {
+            const url = document.getElementById('gas-url-input').value.trim();
+            state.gasUrl = url;
+            localStorage.setItem('muji_planner_gas_url', url);
+            alert('Google Apps Script 網址已儲存！');
+            if (url) syncToCloud();
+        }
+
+        function updateCloudStatus(status) {
+            const el = document.getElementById('cloud-status-indicator');
+            if (!el) return;
+            if (status === 'syncing') el.className = 'text-xs text-amber-500 animate-pulse';
+            else if (status === 'success') el.className = 'text-xs text-emerald-600';
+            else if (status === 'error') el.className = 'text-xs text-rose-500';
+            else el.className = 'text-xs text-gray-400';
+        }
+
+        async function syncToCloud() {
+            if (!state.gasUrl) return;
+            updateCloudStatus('syncing');
+            try {
+                await fetch(state.gasUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'save',
+                        assignments: state.assignments
+                    })
+                });
+                updateCloudStatus('success');
+            } catch (err) {
+                console.error('雲端同步失敗:', err);
+                updateCloudStatus('error');
+            }
+        }
+
+        async function syncFromCloud() {
+            if (!state.gasUrl) {
+                alert('請先輸入並儲存 GAS Web App 網址');
+                return;
+            }
+            updateCloudStatus('syncing');
+            try {
+                const res = await fetch(`${state.gasUrl}?action=load`);
+                const data = await res.json();
+                if (data && data.assignments) {
+                    state.assignments = data.assignments;
+                    saveToStorage(false);
+                    renderCalendar();
+                    updateCloudStatus('success');
+                    alert('已成功從雲端同步資料！');
+                }
+            } catch (err) {
+                console.error('雲端載入失敗:', err);
+                updateCloudStatus('error');
+                alert('從雲端載入失敗，請檢查網址或權限。');
+            }
+        }
+
+        // --- 複製單項進度 ---
+        function copyAssignment(dateStr, assignId, event) {
+            event.stopPropagation();
+            if (!state.assignments[dateStr]) return;
+            const target = state.assignments[dateStr].find(a => a.id === assignId);
+            if (target) {
+                const newAssign = {
+                    id: 'assign-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+                    name: target.name + ' (副本)',
+                    done: false
+                };
+                state.assignments[dateStr].push(newAssign);
+                saveToStorage();
+                renderCalendar();
+            }
+        }
+
+        // --- 拖曳轉移邏輯 ---
+        function moveAssignment(fromDate, toDate, assignId) {
+            if (!fromDate || !toDate || !assignId || fromDate === toDate) return;
+            if (!state.assignments[fromDate]) return;
+
+            const index = state.assignments[fromDate].findIndex(a => a.id === assignId);
+            if (index > -1) {
+                const [item] = state.assignments[fromDate].splice(index, 1);
+                if (state.assignments[fromDate].length === 0) delete state.assignments[fromDate];
+
+                if (!state.assignments[toDate]) state.assignments[toDate] = [];
+                state.assignments[toDate].push(item);
+
+                saveToStorage();
+                renderCalendar();
+            }
+        }
+
+        // --- 拖曳事件處理 (Pointer Events) ---
+        function attachDragListeners(cardEl, dateStr, assignId) {
+            cardEl.ondragstart = (e) => {
+                state.dragData.assignId = assignId;
+                state.dragData.fromDateStr = dateStr;
+                e.dataTransfer.setData('text/plain', JSON.stringify({ assignId, dateStr }));
+                cardEl.classList.add('dragging');
+            };
+
+            cardEl.ondragend = () => {
+                cardEl.classList.remove('dragging');
+                clearDragHighlights();
+            };
+
+            cardEl.onpointerdown = (e) => {
+                if (e.target.tagName === 'BUTTON' || e.target.tagName === 'I' || e.target.tagName === 'INPUT') return;
+
+                state.dragData.assignId = assignId;
+                state.dragData.fromDateStr = dateStr;
+
+                const rect = cardEl.getBoundingClientRect();
+                const clone = cardEl.cloneNode(true);
+                clone.classList.add('drag-clone');
+                clone.style.width = `${rect.width}px`;
+                clone.style.left = `${e.clientX - rect.width / 2}px`;
+                clone.style.top = `${e.clientY - rect.height / 2}px`;
+
+                document.body.appendChild(clone);
+                state.dragData.cloneEl = clone;
+                cardEl.classList.add('dragging');
+
+                window.onpointermove = (pe) => {
+                    if (!state.dragData.cloneEl) return;
+                    pe.preventDefault();
+
+                    state.dragData.cloneEl.style.left = `${pe.clientX - rect.width / 2}px`;
+                    state.dragData.cloneEl.style.top = `${pe.clientY - rect.height / 2}px`;
+
+                    state.dragData.cloneEl.style.display = 'none';
+                    const targetEl = document.elementFromPoint(pe.clientX, pe.clientY);
+                    state.dragData.cloneEl.style.display = '';
+
+                    const cellEl = targetEl?.closest('[data-date]');
+                    clearDragHighlights();
+                    if (cellEl) {
+                        cellEl.classList.add('drag-over-target');
+                        state.dragData.lastTargetCell = cellEl;
+                    } else {
+                        state.dragData.lastTargetCell = null;
+                    }
+                };
+
+                window.onpointerup = (pe) => {
+                    window.onpointermove = null;
+                    window.onpointerup = null;
+
+                    if (state.dragData.cloneEl) {
+                        state.dragData.cloneEl.remove();
+                        state.dragData.cloneEl = null;
+                    }
+                    cardEl.classList.remove('dragging');
+
+                    if (state.dragData.lastTargetCell) {
+                        const targetDate = state.dragData.lastTargetCell.getAttribute('data-date');
+                        moveAssignment(state.dragData.fromDateStr, targetDate, state.dragData.assignId);
+                    }
+                    clearDragHighlights();
+                };
+            };
+        }
+
+        function clearDragHighlights() {
+            document.querySelectorAll('.drag-over-target').forEach(el => el.classList.remove('drag-over-target'));
+        }
+
+        // --- 行內編輯與新增 ---
+        function showInlineInput(dateStr, event) {
+            if (event) event.stopPropagation();
+            const container = document.getElementById(`input-container-${dateStr}`);
+            if (!container || container.querySelector('input')) return;
+
+            const isWeek = state.viewMode === 'week';
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = '新增進度... (例: 數學:複習第一章)';
+            input.className = `w-full bg-[#F7F5F0] border border-[#8A9A86] rounded px-2 py-1 outline-none text-[#4A4A4A] ${
+                isWeek ? 'text-lg py-2 px-3' : 'text-xs'
+            }`;
+
+            input.onkeydown = (e) => {
+                if (e.key === 'Enter') saveInlineTask(dateStr, input.value);
+                if (e.key === 'Escape') container.innerHTML = '';
+            };
+            input.onblur = () => {
+                if (input.value.trim()) saveInlineTask(dateStr, input.value);
+                else container.innerHTML = '';
+            };
+
+            container.appendChild(input);
+            input.focus();
+        }
+
+        function saveInlineTask(dateStr, text) {
+            const cleanText = text.trim();
+            if (!cleanText) return;
+
+            if (!state.assignments[dateStr]) state.assignments[dateStr] = [];
+            state.assignments[dateStr].push({
+                id: 'assign-' + Date.now(),
+                name: cleanText,
+                done: false
+            });
+
+            saveToStorage();
+            renderCalendar();
+        }
+
+        function startInlineEdit(dateStr, assignId, event) {
+            event.stopPropagation();
+            const cardEl = document.getElementById(`card-${assignId}`);
+            if (!cardEl) return;
+
+            const assign = state.assignments[dateStr]?.find(a => a.id === assignId);
+            if (!assign) return;
+
+            const isWeek = state.viewMode === 'week';
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = assign.name;
+            input.className = `w-full bg-white border border-[#8A9A86] rounded px-1.5 py-0.5 outline-none font-normal text-[#4A4A4A] ${
+                isWeek ? 'text-xl' : 'text-xs'
+            }`;
+
+            cardEl.innerHTML = '';
+            cardEl.appendChild(input);
+            input.focus();
+            input.select();
+
+            const finishEdit = () => {
+                const newText = input.value.trim();
+                if (newText) {
+                    assign.name = newText;
+                    saveToStorage();
+                }
+                renderCalendar();
+            };
+
+            input.onkeydown = (e) => {
+                if (e.key === 'Enter') finishEdit();
+                if (e.key === 'Escape') renderCalendar();
+            };
+            input.onblur = finishEdit;
+        }
+
+        // --- 狀態更新 ---
+        function updateCompletionBadge() {
+            let total = 0, doneCount = 0;
+            Object.values(state.assignments).forEach(list => {
+                list.forEach(a => {
+                    total++;
+                    if (a.done) doneCount++;
+                });
+            });
+            const rate = total === 0 ? 0 : Math.round((doneCount / total) * 100);
+            const badge = document.getElementById('daily-completion-badge');
+            if (badge) badge.innerText = `${rate}% 完成`;
+        }
+
         function switchDeviceMode(mode) {
             state.deviceMode = mode;
             const container = document.getElementById('main-container');
@@ -259,144 +531,32 @@
             if (mode === 'mobile') {
                 container.classList.remove('max-w-full', 'px-6');
                 container.classList.add('max-w-md');
-                btnMobile.className = "px-2.5 py-1.5 rounded-md transition-all duration-200 bg-white shadow-sm text-[#4A4A4A]";
-                btnDesktop.className = "px-2.5 py-1.5 rounded-md transition-all duration-200 text-[#7A746B] hover:text-[#4A4A4A]";
+                btnMobile.className = "px-2.5 py-1.5 rounded-md transition-all bg-white shadow-2xs text-[#4A4A4A]";
+                btnDesktop.className = "px-2.5 py-1.5 rounded-md transition-all text-[#7A746B] hover:text-[#4A4A4A]";
             } else {
                 container.classList.remove('max-w-md');
                 container.classList.add('max-w-full', 'px-6');
-                btnDesktop.className = "px-2.5 py-1.5 rounded-md transition-all duration-200 bg-white shadow-sm text-[#4A4A4A]";
-                btnMobile.className = "px-2.5 py-1.5 rounded-md transition-all duration-200 text-[#7A746B] hover:text-[#4A4A4A]";
+                btnDesktop.className = "px-2.5 py-1.5 rounded-md transition-all bg-white shadow-2xs text-[#4A4A4A]";
+                btnMobile.className = "px-2.5 py-1.5 rounded-md transition-all text-[#7A746B] hover:text-[#4A4A4A]";
             }
-            saveToStorage();
-            renderCalendar(); 
-        }
-
-        // --- 數據備份與還原邏輯 ---
-        function downloadBackup() {
-            const dataStr = localStorage.getItem('muji_planner_data') || JSON.stringify({categories:[], items:[], assignments:{}, deviceMode:'mobile'});
-            const blob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            
-            const now = new Date();
-            const dateSuffix = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-            
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `日課便帖_數據備份_${dateSuffix}.json`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-        }
-
-        function triggerUploadBackup() {
-            document.getElementById('backup-file-input').click();
-        }
-
-        function handleUploadBackup(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            showCustomConfirm('警告：上傳此備份檔案將會完全「覆蓋清除」目前的所有安排進度與分類，確定要還原數據嗎？', () => {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    try {
-                        const parsed = JSON.parse(e.target.result);
-                        if (parsed.categories && parsed.items && parsed.assignments) {
-                            state.categories = parsed.categories;
-                            state.items = parsed.items;
-                            state.assignments = parsed.assignments;
-                            state.deviceMode = parsed.deviceMode || 'mobile';
-                            saveToStorage();
-                            
-                            switchDeviceMode(state.deviceMode);
-                            renderSidebar();
-                            renderCalendar();
-                            toggleSidebar(false);
-                        } else {
-                            alert('還原失敗：檔案數據結構損毀或不相符！');
-                        }
-                    } catch (err) {
-                        alert('還原失敗：無法成功讀取或解析此 JSON 備份檔案。');
-                    }
-                    event.target.value = ''; 
-                };
-                reader.readAsText(file);
-            });
-        }
-
-        // --- 自訂確認彈窗 ---
-        function showCustomConfirm(message, actionCallback) {
-            document.getElementById('confirm-modal-message').innerText = message;
-            const actionBtn = document.getElementById('confirm-modal-action');
-            
-            const newActionBtn = actionBtn.cloneNode(true);
-            actionBtn.parentNode.replaceChild(newActionBtn, actionBtn);
-            
-            newActionBtn.addEventListener('click', () => {
-                actionCallback();
-                closeConfirmModal();
-            });
-            
-            document.getElementById('confirm-modal').classList.remove('hidden');
-        }
-
-        function closeConfirmModal() {
-            document.getElementById('confirm-modal').classList.add('hidden');
-            document.getElementById('backup-file-input').value = ''; 
-        }
-
-        // --- UI 控制：側邊欄 ---
-        function toggleSidebar(open) {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebar-overlay');
-            if (open) {
-                sidebar.classList.remove('-translate-x-full');
-                overlay.classList.remove('hidden');
-                setTimeout(() => overlay.classList.add('opacity-100'), 10);
-                renderSidebar();
-            } else {
-                sidebar.classList.add('-translate-x-full');
-                overlay.classList.remove('opacity-100');
-                setTimeout(() => overlay.classList.add('hidden'), 300);
-            }
-        }
-
-        // --- UI 控制：排程模式 Banner ---
-        function enterSelectionMode(itemId) {
-            const item = state.items.find(i => i.id === itemId);
-            if (!item) return;
-            state.selectedItemId = itemId;
-            
-            document.getElementById('selected-item-name-banner').innerText = item.name;
-            const banner = document.getElementById('selection-banner');
-            banner.classList.remove('hidden');
-            
-            toggleSidebar(false); 
-            renderCalendar(); 
-        }
-
-        function cancelSelection() {
-            state.selectedItemId = null;
-            const banner = document.getElementById('selection-banner');
-            if (banner) {
-                banner.classList.add('hidden');
-            }
+            saveToStorage(false);
             renderCalendar();
         }
 
-        // --- 視角與前後導航控制 ---
         function switchView(mode) {
             state.viewMode = mode;
             const btnMonth = document.getElementById('btn-month-view');
             const btnWeek = document.getElementById('btn-week-view');
+            const weekHeader = document.getElementById('week-header-row');
             
             if (mode === 'month') {
-                btnMonth.className = "px-3 py-1.5 rounded-md transition-all duration-200 bg-white shadow-sm text-[#4A4A4A]";
-                btnWeek.className = "px-3 py-1.5 rounded-md transition-all duration-200 text-[#7A746B] hover:text-[#4A4A4A]";
+                btnMonth.className = "px-3 py-1.5 rounded-md transition-all bg-white shadow-2xs text-[#4A4A4A]";
+                btnWeek.className = "px-3 py-1.5 rounded-md transition-all text-[#7A746B] hover:text-[#4A4A4A]";
+                weekHeader.classList.remove('hidden');
             } else {
-                btnWeek.className = "px-3 py-1.5 rounded-md transition-all duration-200 bg-white shadow-sm text-[#4A4A4A]";
-                btnMonth.className = "px-3 py-1.5 rounded-md transition-all duration-200 text-[#7A746B] hover:text-[#4A4A4A]";
+                btnWeek.className = "px-3 py-1.5 rounded-md transition-all bg-white shadow-2xs text-[#4A4A4A]";
+                btnMonth.className = "px-3 py-1.5 rounded-md transition-all text-[#7A746B] hover:text-[#4A4A4A]";
+                weekHeader.classList.add('hidden');
             }
             renderCalendar();
         }
@@ -408,138 +568,6 @@
                 state.currentDate.setDate(state.currentDate.getDate() + (direction * 7));
             }
             renderCalendar();
-        }
-
-        // --- 輔助歷史數據清理函數 ---
-        function cleanAssignmentsByItemId(itemId) {
-            Object.keys(state.assignments).forEach(dateStr => {
-                state.assignments[dateStr] = state.assignments[dateStr].filter(a => a.itemId !== itemId);
-                if (state.assignments[dateStr].length === 0) {
-                    delete state.assignments[dateStr];
-                }
-            });
-        }
-
-        // --- 【新增功能：修改分類與項目的名稱】 ---
-        function editCategory(catId, event) {
-            if (event) event.stopPropagation();
-            const cat = state.categories.find(c => c.id === catId);
-            if (!cat) return;
-            
-            const newName = prompt("請輸入新的分類名稱：", cat.name);
-            if (newName && newName.trim()) {
-                cat.name = newName.trim();
-                saveToStorage();
-                renderSidebar();
-                renderCalendar();
-            }
-        }
-
-        function editItem(itemId, event) {
-            if (event) event.stopPropagation();
-            const item = state.items.find(i => i.id === itemId);
-            if (!item) return;
-
-            const newName = prompt("請輸入新的項目進度名稱：", item.name);
-            if (newName && newName.trim()) {
-                item.name = newName.trim();
-                saveToStorage();
-                renderSidebar();
-                renderCalendar();
-            }
-        }
-
-        // --- 核心邏輯：新增/刪除分類與項目 ---
-        function addCategory() {
-            const input = document.getElementById('new-category-input');
-            const name = input.value.trim();
-            if (!name) return;
-            
-            const newCat = { id: 'cat-' + Date.now(), name: name };
-            state.categories.push(newCat);
-            input.value = '';
-            saveToStorage();
-            renderSidebar();
-        }
-
-        function deleteCategory(catId, event) {
-            if (event) event.stopPropagation();
-            
-            showCustomConfirm('確定要刪除此分類及其下屬的所有項目嗎？日曆內的歷史紀錄也將被同步清除。', () => {
-                const itemIdsToRemove = state.items.filter(i => i.categoryId === catId).map(i => i.id);
-                itemIdsToRemove.forEach(itemId => cleanAssignmentsByItemId(itemId));
-                
-                state.categories = state.categories.filter(c => c.id !== catId);
-                state.items = state.items.filter(i => i.categoryId !== catId);
-                
-                saveToStorage();
-                renderSidebar();
-                renderCalendar();
-            });
-        }
-
-        function openItemModal(catId, catName) {
-            document.getElementById('modal-category-id').value = catId;
-            document.getElementById('modal-category-name').innerText = catName;
-            document.getElementById('item-modal').classList.remove('hidden');
-            document.getElementById('new-item-input').focus();
-        }
-
-        function closeItemModal() {
-            document.getElementById('item-modal').classList.add('hidden');
-            document.getElementById('new-item-input').value = '';
-        }
-
-        function addItem() {
-            const catId = document.getElementById('modal-category-id').value;
-            const input = document.getElementById('new-item-input');
-            const name = input.value.trim();
-            if (!name) return;
-
-            const newItem = {
-                id: 'item-' + Date.now(),
-                categoryId: catId,
-                name: name
-            };
-            state.items.push(newItem);
-            saveToStorage();
-            closeItemModal();
-            renderSidebar();
-        }
-
-        function deleteItem(itemId, event) {
-            if (event) event.stopPropagation();
-            
-            showCustomConfirm('確定要永久刪除此項目嗎？', () => {
-                cleanAssignmentsByItemId(itemId);
-                state.items = state.items.filter(i => i.id !== itemId);
-                if (state.selectedItemId === itemId) {
-                    cancelSelection();
-                }
-                saveToStorage();
-                renderSidebar();
-                renderCalendar();
-            });
-        }
-
-        // --- 日曆排程排入與互動作業 ---
-        function handleDateClick(dateStr) {
-            if (state.selectedItemId) {
-                if (!state.assignments[dateStr]) {
-                    state.assignments[dateStr] = [];
-                }
-                state.assignments[dateStr].push({
-                    id: 'assign-' + Date.now(),
-                    itemId: state.selectedItemId,
-                    done: false
-                });
-                
-                saveToStorage();
-                cancelSelection(); 
-                
-                renderSidebar();
-                renderCalendar();
-            }
         }
 
         function toggleTaskDone(dateStr, assignId, event) {
@@ -558,11 +586,8 @@
             event.stopPropagation();
             if (state.assignments[dateStr]) {
                 state.assignments[dateStr] = state.assignments[dateStr].filter(a => a.id !== assignId);
-                if (state.assignments[dateStr].length === 0) {
-                    delete state.assignments[dateStr];
-                }
+                if (state.assignments[dateStr].length === 0) delete state.assignments[dateStr];
                 saveToStorage();
-                renderSidebar();
                 renderCalendar();
             }
         }
@@ -574,81 +599,54 @@
             return `${y}-${m}-${d}`;
         }
 
-        function getAssignedItemIds() {
-            const assignedIds = new Set();
-            Object.values(state.assignments).forEach(list => {
-                list.forEach(assign => {
-                    assignedIds.add(assign.itemId);
-                });
-            });
-            return assignedIds;
-        }
-
-        // --- 渲染：側邊欄項目庫 ---
-        function renderSidebar() {
-            const container = document.getElementById('sidebar-content');
-            container.innerHTML = '';
-
-            if (state.categories.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-8 text-xs text-[#B0A9A0]">
-                        <i class="fa-solid fa-folder-plus text-2xl mb-2 block text-[#D6D2C9]"></i>
-                        目前沒有分類，請先在上方建立
-                    </div>`;
-                return;
+        function toggleSidebar(open) {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            if (open) {
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+                setTimeout(() => overlay.classList.add('opacity-100'), 10);
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.remove('opacity-100');
+                setTimeout(() => overlay.classList.add('hidden'), 300);
             }
-
-            const assignedItemIds = getAssignedItemIds();
-
-            state.categories.forEach(cat => {
-                const catItems = state.items.filter(i => i.categoryId === cat.id && !assignedItemIds.has(i.id));
-                
-                const catEl = document.createElement('div');
-                catEl.className = "bg-white border border-[#E6E2DC] rounded-xl overflow-hidden shadow-2xs";
-                
-                let itemsHtml = '';
-                if (catItems.length === 0) {
-                    itemsHtml = `<div class="p-3 text-xs text-[#B0A9A0] bg-[#FAFAFA] text-center italic">暫無待安排項目</div>`;
-                } else {
-                    catItems.forEach(item => {
-                        const isSelected = state.selectedItemId === item.id;
-                        itemsHtml += `
-                            <div onclick="enterSelectionMode('${item.id}')" class="group p-3 text-sm flex justify-between items-center border-t border-[#F2EFEA] hover:bg-[#F4F1EC] cursor-pointer transition-colors ${isSelected ? 'bg-[#EAE6DF] font-medium' : 'bg-white'}">
-                                <span class="text-[#4A4A4A] flex items-center gap-2 truncate">
-                                    <i class="fa-regular fa-circle-dot text-xs text-[#A39E93]"></i>
-                                    <span class="truncate">${item.name}</span>
-                                </span>
-                                <div class="flex items-center gap-1.5 no-print">
-                                    <button onclick="editItem('${item.id}', event)" class="text-[#7A746B] hover:text-[#4A4A4A] p-1 text-xs" title="修改名稱">
-                                        <i class="fa-solid fa-pen"></i>
-                                    </button>
-                                    <button onclick="deleteItem('${item.id}', event)" class="text-[#C9A297] hover:text-[#B87C67] p-1 text-xs" title="刪除項目">
-                                        <i class="fa-regular fa-trash-can"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        `;
-                    });
-                }
-
-                catEl.innerHTML = `
-                    <div class="px-3 py-2.5 bg-[#F2EFEA] flex justify-between items-center text-xs font-medium text-[#6E685E] tracking-wider">
-                        <span class="truncate flex items-center gap-1.5"><i class="fa-solid fa-tags text-[#A69F92]"></i> ${cat.name}</span>
-                        <div class="flex gap-1">
-                            <button onclick="openItemModal('${cat.id}', '${cat.name}')" class="text-[#8A9A86] hover:text-[#6F7D6C] p-1" title="新增項目"><i class="fa-solid fa-plus-circle text-sm"></i></button>
-                            <button onclick="editCategory('${cat.id}', event)" class="text-[#7A746B] hover:text-[#4A4A4A] p-1" title="修改分類名稱"><i class="fa-solid fa-pen text-sm"></i></button>
-                            <button onclick="deleteCategory('${cat.id}', event)" class="text-[#C9A297] hover:text-[#B87C67] p-1" title="刪除分類"><i class="fa-solid fa-circle-minus text-sm"></i></button>
-                        </div>
-                    </div>
-                    <div class="divide-y divide-[#F2EFEA]">
-                        ${itemsHtml}
-                    </div>
-                `;
-                container.appendChild(catEl);
-            });
         }
 
-        // --- 渲染：核心日曆組件 ---
+        function downloadBackup() {
+            const dataStr = localStorage.getItem('muji_planner_ux_data') || JSON.stringify({assignments:{}, deviceMode:'mobile'});
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `日課便帖_備份_${formatDateStr(new Date())}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function triggerUploadBackup() { document.getElementById('backup-file-input').click(); }
+
+        function handleUploadBackup(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (parsed.assignments) {
+                        state.assignments = parsed.assignments;
+                        state.deviceMode = parsed.deviceMode || 'mobile';
+                        saveToStorage();
+                        switchDeviceMode(state.deviceMode);
+                        renderCalendar();
+                        toggleSidebar(false);
+                    }
+                } catch (err) { alert('備份檔案讀取失敗'); }
+            };
+            reader.readAsText(file);
+        }
+
+        // --- 核心日曆渲染 ---
         function renderCalendar() {
             const grid = document.getElementById('calendar-grid');
             const title = document.getElementById('calendar-title');
@@ -664,22 +662,18 @@
             if (state.viewMode === 'month') {
                 let firstDayIndex = new Date(year, month, 1).getDay();
                 firstDayIndex = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
-
                 const totalDays = new Date(year, month + 1, 0).getDate();
                 const prevTotalDays = new Date(year, month, 0).getDate();
 
                 for (let i = firstDayIndex - 1; i >= 0; i--) {
-                    const d = new Date(year, month - 1, prevTotalDays - i);
-                    daysArray.push({ date: d, isCurrentMonth: false });
+                    daysArray.push({ date: new Date(year, month - 1, prevTotalDays - i), isCurrentMonth: false });
                 }
                 for (let i = 1; i <= totalDays; i++) {
-                    const d = new Date(year, month, i);
-                    daysArray.push({ date: d, isCurrentMonth: true });
+                    daysArray.push({ date: new Date(year, month, i), isCurrentMonth: true });
                 }
                 let nextDays = 1;
                 while (daysArray.length < 42) {
-                    const d = new Date(year, month + 1, nextDays++);
-                    daysArray.push({ date: d, isCurrentMonth: false });
+                    daysArray.push({ date: new Date(year, month + 1, nextDays++), isCurrentMonth: false });
                 }
             } else {
                 const currentDay = state.currentDate.getDay();
@@ -694,110 +688,147 @@
                 }
             }
 
-            // --- 開始繪製日曆格子 ---
             daysArray.forEach(cell => {
                 const dateStr = formatDateStr(cell.date);
                 const dayAssignments = state.assignments[dateStr] || [];
                 const isToday = dateStr === todayStr;
-                
                 const cellEl = document.createElement('div');
-                cellEl.className = `bg-white border rounded-xl p-1 flex flex-col justify-between transition-all duration-200 border-[#E6E2DC] min-h-[95px] ${
-                    !cell.isCurrentMonth ? 'opacity-30 bg-[#FAF9F6]' : ''
-                } ${isToday ? 'ring-2 ring-[#8A9A86] bg-[#F1F3F0]' : ''} ${
-                    state.selectedItemId ? 'hover:bg-[#F2ECE4] hover:border-[#D0B8AC] cursor-pointer' : ''
-                }`;
-                
-                if (state.selectedItemId) {
-                    cellEl.setAttribute('onclick', `handleDateClick('${dateStr}')`);
-                }
 
-                const isWeekend = cell.date.getDay() === 0 || cell.date.getDay() === 6;
-                let dayNumClass = "text-[11px] font-semibold rounded-full w-4 h-4 flex items-center justify-center ";
-                if (isToday) {
-                    dayNumClass += "bg-[#8A9A86] text-white";
-                } else if (isWeekend) {
-                    dayNumClass += "text-[#B87C67]";
-                } else {
-                    dayNumClass += "text-[#5C5750]";
-                }
+                cellEl.setAttribute('data-date', dateStr);
 
-                let tasksHtml = '<div class="space-y-0.5 my-1 overflow-y-auto no-scrollbar flex-1 flex flex-col justify-start">';
-                dayAssignments.forEach(assign => {
-                    const item = state.items.find(i => i.id === assign.itemId);
-                    if (item) {
-                        tasksHtml += `
-                            <div onclick="toggleTaskDone('${dateStr}', '${assign.id}', event)" class="relative flex items-center justify-between text-[9px] leading-tight px-1 py-0.5 rounded border transition-colors cursor-pointer select-none ${
-                                assign.done 
-                                ? 'bg-[#EAE6DF] border-[#D6D2C9] text-[#B0A9A0] line-through decoration-1' 
-                                : 'bg-[#F0F2EE] border-[#D6DDD4] text-[#4A554A]'
-                            }">
-                                <span class="truncate pr-2.5" title="${item.name}">${item.name}</span>
-                                <button onclick="removeAssignment('${dateStr}', '${assign.id}', event)" class="no-print absolute right-0.5 top-0 bottom-0 text-[#C9A297] hover:text-[#B87C67] px-0.5 flex items-center justify-center text-[8px]" title="移除排程">
+                cellEl.ondragover = (e) => {
+                    e.preventDefault();
+                    cellEl.classList.add('drag-over-target');
+                };
+                cellEl.ondragleave = () => cellEl.classList.remove('drag-over-target');
+                cellEl.ondrop = (e) => {
+                    e.preventDefault();
+                    cellEl.classList.remove('drag-over-target');
+                    moveAssignment(state.dragData.fromDateStr, dateStr, state.dragData.assignId);
+                };
+
+                if (state.viewMode === 'month') {
+                    // 月檢視：放大內邊距與文字級號
+                    cellEl.className = `bg-white border rounded-xl p-2 flex flex-col justify-between transition-all duration-150 border-[#E6E2DC] min-h-[120px] group ${
+                        !cell.isCurrentMonth ? 'opacity-30 bg-[#FAF9F6]' : ''
+                    } ${isToday ? 'ring-2 ring-[#8A9A86] bg-[#F1F3F0]' : ''}`;
+
+                    const isWeekend = cell.date.getDay() === 0 || cell.date.getDay() === 6;
+                    let dayNumClass = "text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center pointer-events-none ";
+                    dayNumClass += isToday ? "bg-[#8A9A86] text-white" : (isWeekend ? "text-[#B87C67]" : "text-[#5C5750]");
+
+                    const taskListContainer = document.createElement('div');
+                    taskListContainer.className = "space-y-1.5 my-1.5 overflow-y-auto no-scrollbar flex-1 flex flex-col justify-start";
+
+                    dayAssignments.forEach(assign => {
+                        const colorClass = getSubjectColorClass(assign.name, assign.done);
+                        const card = document.createElement('div');
+                        card.id = `card-${assign.id}`;
+                        card.draggable = true;
+                        
+                        // 調大月曆卡片的字級 (text-xs) 與內邊距 (px-2 py-1.5)
+                        card.className = `task-card group/item relative flex items-center justify-between text-xs leading-snug px-2 py-1.5 rounded-md border select-none shadow-2xs ${colorClass}`;
+
+                        card.onclick = (e) => toggleTaskDone(dateStr, assign.id, e);
+                        card.ondblclick = (e) => startInlineEdit(dateStr, assign.id, e);
+
+                        card.innerHTML = `
+                            <span class="truncate pr-10 pointer-events-none font-medium">${assign.name}</span>
+                            <div class="no-print absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 transition-opacity flex items-center gap-1 bg-white/80 backdrop-blur-xs px-1 rounded">
+                                <button onclick="copyAssignment('${dateStr}', '${assign.id}', event)" title="複製進度" class="text-[#7A746B] hover:text-[#8A9A86] text-[10px]">
+                                    <i class="fa-regular fa-copy"></i>
+                                </button>
+                                <button onclick="removeAssignment('${dateStr}', '${assign.id}', event)" title="刪除進度" class="text-[#C9A297] hover:text-[#B87C67] text-[10px]">
                                     <i class="fa-solid fa-xmark"></i>
                                 </button>
                             </div>
                         `;
-                    }
-                });
-                tasksHtml += '</div>';
 
-                cellEl.innerHTML = `
-                    <div class="flex justify-between items-center border-b border-[#F7F5F0] pb-0.5">
+                        attachDragListeners(card, dateStr, assign.id);
+                        taskListContainer.appendChild(card);
+                    });
+
+                    const headerEl = document.createElement('div');
+                    headerEl.className = "flex justify-between items-center border-b border-[#F7F5F0] pb-1 pointer-events-none";
+                    headerEl.innerHTML = `
                         <span class="${dayNumClass}">${cell.date.getDate()}</span>
-                    </div>
-                    ${tasksHtml}
-                `;
-                
+                        <button onclick="showInlineInput('${dateStr}', event)" class="pointer-events-auto no-print text-[#A69F92] hover:text-[#8A9A86] text-sm w-5 h-5 rounded hover:bg-[#EAE6DF] flex items-center justify-center">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                    `;
+
+                    const inputContainer = document.createElement('div');
+                    inputContainer.id = `input-container-${dateStr}`;
+
+                    cellEl.appendChild(headerEl);
+                    cellEl.appendChild(taskListContainer);
+                    cellEl.appendChild(inputContainer);
+
+                } else {
+                    // 週檢視模式
+                    cellEl.className = `bg-white border rounded-xl p-3 flex flex-row items-start gap-3 transition-all border-[#E6E2DC] ${
+                        isToday ? 'ring-2 ring-[#8A9A86] bg-[#F1F3F0]' : ''
+                    }`;
+
+                    const weekNames = ["日", "一", "二", "三", "四", "五", "六"];
+                    const isWeekend = cell.date.getDay() === 0 || cell.date.getDay() === 6;
+
+                    const taskListContainer = document.createElement('div');
+                    taskListContainer.className = "flex flex-row flex-wrap gap-2.5 items-center flex-1";
+
+                    dayAssignments.forEach(assign => {
+                        const colorClass = getSubjectColorClass(assign.name, assign.done);
+                        const card = document.createElement('div');
+                        card.id = `card-${assign.id}`;
+                        card.draggable = true;
+                        card.className = `task-card group/item relative flex items-center justify-between text-base font-medium px-4 py-2.5 rounded-lg border select-none shadow-2xs ${colorClass}`;
+
+                        card.onclick = (e) => toggleTaskDone(dateStr, assign.id, e);
+                        card.ondblclick = (e) => startInlineEdit(dateStr, assign.id, e);
+
+                        card.innerHTML = `
+                            <span class="pr-12 pointer-events-none">${assign.name}</span>
+                            <div class="no-print absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 transition-opacity flex items-center gap-2 bg-white/80 backdrop-blur-xs px-1.5 py-0.5 rounded-md">
+                                <button onclick="copyAssignment('${dateStr}', '${assign.id}', event)" title="複製進度" class="text-[#7A746B] hover:text-[#8A9A86] text-xs">
+                                    <i class="fa-regular fa-copy"></i>
+                                </button>
+                                <button onclick="removeAssignment('${dateStr}', '${assign.id}', event)" title="刪除進度" class="text-[#C9A297] hover:text-[#B87C67] text-xs">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </div>
+                        `;
+
+                        attachDragListeners(card, dateStr, assign.id);
+                        taskListContainer.appendChild(card);
+                    });
+
+                    const sideHeader = document.createElement('div');
+                    sideHeader.className = "flex flex-col items-center justify-center bg-[#F2EFEA] rounded-lg p-2.5 min-w-[60px] pointer-events-none";
+                    sideHeader.innerHTML = `
+                        <span class="text-xs font-bold text-[#7A746B]">週${weekNames[cell.date.getDay()]}</span>
+                        <span class="text-xl font-bold ${isWeekend ? 'text-[#B87C67]' : 'text-[#4A4A4A]'}">${cell.date.getDate()}</span>
+                    `;
+
+                    const addBtn = document.createElement('button');
+                    addBtn.className = "no-print border border-dashed border-[#8A9A86] text-[#8A9A86] hover:bg-[#8A9A86] hover:text-white transition-all text-sm font-medium px-4 py-2 rounded-lg flex items-center gap-1.5";
+                    addBtn.innerHTML = `<i class="fa-solid fa-plus pointer-events-none"></i> 新增進度`;
+                    addBtn.onclick = (e) => showInlineInput(dateStr, e);
+
+                    const inputContainer = document.createElement('div');
+                    inputContainer.id = `input-container-${dateStr}`;
+                    inputContainer.className = "min-w-[160px]";
+
+                    taskListContainer.appendChild(inputContainer);
+                    taskListContainer.appendChild(addBtn);
+
+                    cellEl.appendChild(sideHeader);
+                    cellEl.appendChild(taskListContainer);
+                }
+
                 grid.appendChild(cellEl);
             });
 
-            // 【優化優化：如果是週曆模式】
-            if (state.viewMode === 'week') {
-                grid.className = "grid grid-cols-1 gap-2 flex-1";
-                document.querySelectorAll('#calendar-grid > div').forEach((el, index) => {
-                    el.className = `bg-white border rounded-xl p-3 flex flex-row items-start gap-4 transition-all border-[#E6E2DC] ${
-                        formatDateStr(daysArray[index].date) === todayStr ? 'ring-2 ring-[#8A9A86] bg-[#F1F3F0]' : ''
-                    } ${state.selectedItemId ? 'hover:bg-[#F2ECE4] cursor-pointer' : ''}`;
-                    
-                    const cellDate = daysArray[index].date;
-                    const weekNames = ["日", "一", "二", "三", "四", "五", "六"];
-                    const dateStr = formatDateStr(cellDate);
-                    
-                    el.innerHTML = `
-                        <div class="flex flex-col items-center justify-center bg-[#F2EFEA] rounded-lg p-2 min-w-[50px]">
-                            <span class="text-xs font-bold text-[#7A746B]">週${weekNames[cellDate.getDay()]}</span>
-                            <span class="text-lg font-bold ${cellDate.getDay() === 0 || cellDate.getDay() === 6 ? 'text-[#B87C67]' : 'text-[#4A4A4A]'}">${cellDate.getDate()}</span>
-                        </div>
-                        <div class="flex-1 flex flex-col justify-center min-h-[45px]">
-                            ${el.querySelector('.space-y-0\\.5').outerHTML}
-                        </div>
-                    `;
-                    if (state.selectedItemId) {
-                        el.setAttribute('onclick', `handleDateClick('${dateStr}')`);
-                    }
-                    
-                    // 【新樣式注入】將週曆中的項目容器從垂直(flex-col)改為橫向併排(flex-row flex-wrap)
-                    const taskContainer = el.querySelector('.space-y-0\\.5');
-                    if (taskContainer) {
-                        taskContainer.classList.remove('flex-col', 'space-y-0.5');
-                        taskContainer.classList.add('flex-row', 'flex-wrap', 'gap-2', 'items-center');
-                        
-                        // 將字體放大 3~4 倍 (由 text-[9px] 調大至 text-2xl)，並等比例增加內邊距與刪除鈕大小
-                        taskContainer.querySelectorAll(':scope > div').forEach(t => {
-                            t.classList.remove('text-[9px]', 'px-1', 'py-0.5');
-                            t.classList.add('text-2xl', 'px-4', 'py-2', 'font-medium', 'pr-9', 'rounded-lg', 'shadow-xs');
-                            
-                            const closeBtn = t.querySelector('button');
-                            if (closeBtn) {
-                                closeBtn.classList.remove('text-[8px]');
-                                closeBtn.classList.add('text-base', 'right-2.5');
-                            }
-                        });
-                    }
-                });
-            } else {
-                grid.className = "grid grid-cols-7 gap-1 flex-1 min-h-[380px]";
-            }
+            grid.className = state.viewMode === 'week' ? "grid grid-cols-1 gap-2.5 flex-1" : "grid grid-cols-7 gap-1.5 flex-1 min-h-[500px]";
         }
 
         window.onload = function() {
@@ -805,22 +836,5 @@
             renderCalendar();
         };
     </script>
-
-    <style>
-        @keyframes slideDown {
-            from { transform: translateY(-100%); }
-            to { transform: translateY(0); }
-        }
-        @keyframes scaleIn {
-            from { transform: scale(0.95); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-        }
-        .animate-slide-down {
-            animation: slideDown 0.25s ease-out forwards;
-        }
-        .animate-scale-in {
-            animation: scaleIn 0.2s ease-out forwards;
-        }
-    </style>
 </body>
 </html>
