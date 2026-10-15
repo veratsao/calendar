@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>日課便帖 | 清新簡約版</title>
+    <title>日課便帖</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -16,58 +16,54 @@
     <style>
         body {
             font-family: 'Plus Jakarta Sans', 'Noto Sans TC', sans-serif;
-            background-color: #f8f6f0;
-            color: #332e2b;
+            background-color: #F7F5F0;
+            color: #4A4A4A;
             -webkit-tap-highlight-color: transparent;
             user-select: none;
         }
 
         .fresh-container {
             background-color: #ffffff;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
             border-radius: 20px;
-            border: 1px solid #ebe5d8;
+            border: 1px solid #E6E2DC;
         }
 
         .fresh-btn {
-            background-color: #f3efe6;
-            color: #524b43;
-            border: 1px solid #e2dacd;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            background-color: #F2EFEA;
+            color: #6E685E;
+            border: 1px solid #E6E2DC;
+            transition: all 0.2s ease;
         }
         .fresh-btn:hover {
-            background-color: #e8e1d3;
-            color: #211d19;
-            transform: translateY(-1px);
-        }
-        .fresh-btn:active {
-            transform: translateY(0);
+            background-color: #EAE6DF;
+            color: #4A4A4A;
         }
 
         .fresh-cell {
-            background-color: #faf8f5;
-            border: 1px solid #eee8dd;
+            background-color: #FAFAFA;
+            border: 1px solid #E6E2DC;
             border-radius: 12px;
-            transition: border-color 0.2s, box-shadow 0.2s;
+            transition: border-color 0.2s;
         }
         .fresh-cell:hover {
-            border-color: #d6ccb8;
+            border-color: #C2C2B8;
         }
         .fresh-cell.today {
             background-color: #ffffff;
-            border: 2px solid #5b7c99;
-            box-shadow: 0 4px 12px rgba(91, 124, 153, 0.12);
+            border: 2px solid #8A9A86;
+            box-shadow: 0 4px 12px rgba(138, 154, 134, 0.12);
         }
 
         .task-card {
             touch-action: none;
             cursor: grab;
-            border-radius: 8px;
+            border-radius: 6px;
             transition: transform 0.15s ease, box-shadow 0.15s ease;
         }
         .task-card:hover {
-            transform: translateY(-1.5px);
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.04);
         }
         .task-card:active {
             cursor: grabbing;
@@ -81,13 +77,13 @@
             pointer-events: none;
             z-index: 9999;
             opacity: 0.95;
-            transform: scale(1.03) rotate(1deg);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            transform: scale(1.03);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
         }
 
         .drag-over-target {
-            background-color: #f0eadd !important;
-            border: 2px dashed #9e9280 !important;
+            background-color: #EAE6DF !important;
+            border: 2px dashed #8A9A86 !important;
         }
 
         .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -98,33 +94,33 @@
 
     <div class="fresh-container w-full max-w-7xl flex flex-col min-h-[90vh] p-4 md:p-6 relative">
         
-        <header class="bg-[#f2ece1] rounded-2xl p-3.5 mb-4 flex flex-wrap justify-between items-center border border-[#e5dccf]">
+        <header class="bg-[#F2EFEA] rounded-2xl p-3.5 mb-4 flex flex-wrap justify-between items-center border border-[#E6E2DC]">
             <div class="flex items-center gap-3">
                 <button onclick="toggleSidebar(true)" class="fresh-btn px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5">
-                    <i class="fa-solid fa-sliders text-stone-500"></i> 設定
+                    <i class="fa-solid fa-sliders text-[#7A746B]"></i> 設定
                 </button>
-                <h1 class="text-lg md:text-xl font-bold tracking-tight text-[#3d3630] flex items-center gap-2">
-                    <i class="fa-regular fa-calendar-check text-[#718d80]"></i> 日課便帖
-                    <span id="daily-completion-badge" class="text-xs bg-[#e0d6c3] text-[#423a33] font-extrabold px-2.5 py-0.5 rounded-full">0% 完成</span>
-                    <span id="cloud-status-indicator" class="text-xs text-stone-400" title="雲端同步狀態">
+                <h1 class="text-lg md:text-xl font-bold tracking-tight text-[#4A4A4A] flex items-center gap-2">
+                    <i class="fa-regular fa-calendar-check text-[#8A9A86]"></i> 日課便帖
+                    <span id="daily-completion-badge" class="text-xs bg-[#EAE6DF] text-[#6E685E] font-bold px-2.5 py-0.5 rounded-full">0% 完成</span>
+                    <span id="cloud-status-indicator" class="text-xs text-[#A69F92]" title="雲端同步狀態">
                         <i class="fa-solid fa-cloud"></i>
                     </span>
                 </h1>
             </div>
             
             <div class="flex items-center gap-2 mt-2 sm:mt-0">
-                <div class="bg-[#e5dccf] p-1 rounded-xl flex gap-1">
-                    <button id="btn-device-mobile" onclick="switchDeviceMode('mobile')" class="px-2.5 py-1 rounded-lg text-stone-600 hover:bg-[#f2ece1] text-xs">
+                <div class="bg-[#E6E2DC] p-1 rounded-xl flex gap-1">
+                    <button id="btn-device-mobile" onclick="switchDeviceMode('mobile')" class="px-2.5 py-1 rounded-lg text-[#7A746B] hover:bg-[#F2EFEA] text-xs">
                         <i class="fa-solid fa-mobile-screen-button"></i>
                     </button>
-                    <button id="btn-device-desktop" onclick="switchDeviceMode('desktop')" class="px-2.5 py-1 rounded-lg text-stone-600 hover:bg-[#f2ece1] text-xs">
+                    <button id="btn-device-desktop" onclick="switchDeviceMode('desktop')" class="px-2.5 py-1 rounded-lg text-[#7A746B] hover:bg-[#F2EFEA] text-xs">
                         <i class="fa-solid fa-desktop"></i>
                     </button>
                 </div>
 
-                <div class="bg-[#e5dccf] p-1 rounded-xl flex gap-1">
-                    <button id="btn-month-view" onclick="switchView('month')" class="px-3 py-1 rounded-lg font-bold text-xs bg-white text-stone-800 shadow-sm">月</button>
-                    <button id="btn-week-view" onclick="switchView('week')" class="px-3 py-1 rounded-lg font-bold text-xs text-stone-600 hover:bg-[#f2ece1]">週</button>
+                <div class="bg-[#E6E2DC] p-1 rounded-xl flex gap-1">
+                    <button id="btn-month-view" onclick="switchView('month')" class="px-3 py-1 rounded-lg font-bold text-xs bg-white text-[#4A4A4A] shadow-2xs">月</button>
+                    <button id="btn-week-view" onclick="switchView('week')" class="px-3 py-1 rounded-lg font-bold text-xs text-[#7A746B] hover:bg-[#F2EFEA]">週</button>
                 </div>
                 
                 <button onclick="window.print()" class="fresh-btn p-2 rounded-xl text-xs">
@@ -135,26 +131,26 @@
 
         <main id="main-container" class="flex-1 mx-auto w-full flex flex-col gap-3 transition-all duration-300">
             
-            <div class="flex justify-between items-center bg-[#faf8f5] px-5 py-2.5 rounded-2xl border border-[#eee8dd]">
+            <div class="flex justify-between items-center bg-[#FAFAFA] px-5 py-2.5 rounded-2xl border border-[#E6E2DC]">
                 <button onclick="navigateCalendar(-1)" class="fresh-btn w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs">
                     <i class="fa-solid fa-chevron-left"></i>
                 </button>
                 <div class="text-center">
-                    <h2 id="calendar-title" class="font-bold text-[#3d3630] tracking-wide text-base md:text-lg">2026年 09月</h2>
+                    <h2 id="calendar-title" class="font-bold text-[#4A4A4A] tracking-wide text-base md:text-lg">2026年 09月</h2>
                 </div>
                 <button onclick="navigateCalendar(1)" class="fresh-btn w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs">
                     <i class="fa-solid fa-chevron-right"></i>
                 </button>
             </div>
 
-            <div id="week-header-row" class="grid grid-cols-7 gap-2 text-center text-xs font-bold text-[#786e65] px-1">
+            <div id="week-header-row" class="grid grid-cols-7 gap-2 text-center text-xs font-bold text-[#8C867E] px-1">
                 <div class="py-1">一</div>
                 <div class="py-1">二</div>
                 <div class="py-1">三</div>
                 <div class="py-1">四</div>
                 <div class="py-1">五</div>
-                <div class="py-1 text-rose-500">六</div>
-                <div class="py-1 text-rose-500">日</div>
+                <div class="py-1 text-[#B87C67]">六</div>
+                <div class="py-1 text-[#B87C67]">日</div>
             </div>
 
             <div id="calendar-grid" class="grid grid-cols-7 gap-2 flex-1 min-h-[520px]">
@@ -166,23 +162,23 @@
 
     <!-- 側邊 Drawer -->
     <div id="sidebar-overlay" onclick="toggleSidebar(false)" class="hidden fixed inset-0 bg-black/20 backdrop-blur-xs z-40 transition-opacity duration-300 opacity-0"></div>
-    <aside id="sidebar" class="fixed top-0 bottom-0 left-0 w-[85%] max-w-sm bg-[#faf8f5] border-r border-[#e8e2d5] z-50 transform -translate-x-full transition-transform duration-300 ease-out flex flex-col shadow-xl">
-        <div class="p-4 bg-[#f2ece1] text-stone-700 flex justify-between items-center border-b border-[#e5dccf]">
+    <aside id="sidebar" class="fixed top-0 bottom-0 left-0 w-[85%] max-w-sm bg-[#FBFBF9] border-r border-[#E6E2DC] z-50 transform -translate-x-full transition-transform duration-300 ease-out flex flex-col shadow-xl">
+        <div class="p-4 bg-[#F2EFEA] text-[#4A4A4A] flex justify-between items-center border-b border-[#E6E2DC]">
             <h3 class="font-bold flex items-center gap-2 text-sm">
-                <i class="fa-solid fa-sliders text-stone-500"></i> 設定與雲端備份
+                <i class="fa-solid fa-sliders text-[#8A9A86]"></i> 設定與雲端備份
             </h3>
-            <button onclick="toggleSidebar(false)" class="text-stone-400 hover:text-stone-700 w-8 h-8 rounded-full flex items-center justify-center">
+            <button onclick="toggleSidebar(false)" class="text-[#7A746B] hover:text-[#4A4A4A] w-8 h-8 rounded-full flex items-center justify-center">
                 <i class="fa-solid fa-xmark"></i>
             </button>
         </div>
 
         <div class="p-4 space-y-4 flex-1 overflow-y-auto">
-            <div class="bg-white p-4 rounded-2xl border border-[#eee8dd] shadow-xs space-y-3">
-                <div class="text-xs font-bold text-stone-700 flex items-center gap-1.5">
-                    <i class="fa-solid fa-cloud-arrow-up text-sky-600"></i> Google Apps Script 網址
+            <div class="bg-white p-4 rounded-2xl border border-[#E6E2DC] shadow-2xs space-y-3">
+                <div class="text-xs font-bold text-[#4A4A4A] flex items-center gap-1.5">
+                    <i class="fa-solid fa-cloud-arrow-up text-[#8A9A86]"></i> Google Apps Script 網址
                 </div>
                 <input type="url" id="gas-url-input" placeholder="貼上 GAS Web App URL..." 
-                       class="w-full text-xs p-2.5 border border-[#e2dacd] rounded-xl bg-[#faf8f5] focus:outline-none focus:ring-2 focus:ring-stone-400">
+                       class="w-full text-xs p-2.5 border border-[#E6E2DC] rounded-xl bg-[#FAFAFA] focus:outline-none focus:ring-1 focus:ring-[#8A9A86]">
                 <div class="grid grid-cols-2 gap-2">
                     <button onclick="saveGasUrl()" class="fresh-btn py-2 px-2 rounded-xl text-xs font-bold">
                         儲存網址
@@ -193,9 +189,9 @@
                 </div>
             </div>
 
-            <div class="bg-white p-4 rounded-2xl border border-[#eee8dd] shadow-xs space-y-3">
-                <div class="text-xs font-bold text-stone-700 flex items-center gap-1.5">
-                    <i class="fa-solid fa-database text-amber-600"></i> 本地檔案備份
+            <div class="bg-white p-4 rounded-2xl border border-[#E6E2DC] shadow-2xs space-y-3">
+                <div class="text-xs font-bold text-[#4A4A4A] flex items-center gap-1.5">
+                    <i class="fa-solid fa-database text-[#A69F92]"></i> 本地檔案備份
                 </div>
                 <div class="grid grid-cols-2 gap-2 pt-1">
                     <button onclick="downloadBackup()" class="fresh-btn py-2 px-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1">
@@ -211,20 +207,23 @@
     </aside>
 
     <script>
-        // --- 清新配色（五科 + 五科以外擴充配色） ---
+        // --- 溫潤低飽和莫蘭迪配色方案 ---
         const SUBJECT_COLORS = {
-            '國語': 'bg-rose-100 text-rose-800 border-rose-200',
-            '英文': 'bg-sky-100 text-sky-800 border-sky-200',
-            '數學': 'bg-emerald-100 text-emerald-800 border-emerald-200',
-            '自然': 'bg-stone-200 text-stone-800 border-stone-300',
-            '社會': 'bg-amber-100 text-amber-800 border-amber-200',
+            // 五科主要莫蘭迪色
+            '國語': 'bg-[#F4ECEA] text-[#7A5852] border-[#E8D4D0]',
+            '英文': 'bg-[#E8EEF2] text-[#4F6375] border-[#D0DCED]',
+            '數學': 'bg-[#EAEDE2] text-[#5C6647] border-[#D5DCCD]',
+            '自然': 'bg-[#E5EEED] text-[#486661] border-[#CFDDD9]',
+            '社會': 'bg-[#F4EFE6] text-[#7A694F] border-[#E5DAC6]',
             
-            '考卷': 'bg-purple-100 text-purple-800 border-purple-200',
-            '化學': 'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200',
-            '地理': 'bg-lime-100 text-lime-800 border-lime-200',
-            '公民': 'bg-cyan-100 text-cyan-800 border-cyan-200',
+            // 五科以外的擴充莫蘭迪色
+            '考卷': 'bg-[#EFEAF4] text-[#635275] border-[#DDD3EC]',
+            '化學': 'bg-[#F4EAF2] text-[#75526C] border-[#ECD3E8]',
+            '歷史': 'bg-[#EFECE9] text-[#6E635C] border-[#DDD7D2]',
+            '地理': 'bg-[#ECF2E6] text-[#5B6E4C] border-[#D7E3CC]',
+            '公民': 'bg-[#E6EFF2] text-[#496B75] border-[#CFDFE5]',
             
-            'default': 'bg-slate-100 text-slate-700 border-slate-200'
+            'default': 'bg-[#F0EEEA] text-[#66625D] border-[#E2DFDC]'
         };
 
         let state = {
@@ -286,7 +285,7 @@
         }
 
         function getSubjectColorClass(name, done) {
-            if (done) return 'bg-stone-100 border-stone-200 text-stone-400 line-through opacity-75';
+            if (done) return 'bg-[#F2EFEA] border-[#E6E2DC] text-[#B0A9A0] line-through opacity-80';
             
             for (let sub in SUBJECT_COLORS) {
                 if (sub !== 'default' && (name.includes(sub) || name.startsWith(`[${sub}]`) || name.startsWith(`${sub}:`))) {
@@ -307,10 +306,10 @@
         function updateCloudStatus(status) {
             const el = document.getElementById('cloud-status-indicator');
             if (!el) return;
-            if (status === 'syncing') el.className = 'text-xs text-amber-500 animate-pulse';
-            else if (status === 'success') el.className = 'text-xs text-emerald-500';
-            else if (status === 'error') el.className = 'text-xs text-rose-500';
-            else el.className = 'text-xs text-stone-400';
+            if (status === 'syncing') el.className = 'text-xs text-amber-600 animate-pulse';
+            else if (status === 'success') el.className = 'text-xs text-[#8A9A86]';
+            else if (status === 'error') el.className = 'text-xs text-[#B87C67]';
+            else el.className = 'text-xs text-[#A69F92]';
         }
 
         async function syncToCloud() {
@@ -464,7 +463,7 @@
             const input = document.createElement('input');
             input.type = 'text';
             input.placeholder = '輸入進度...';
-            input.className = `w-full bg-white border border-stone-300 rounded-md px-2 py-1 outline-none text-stone-800 font-medium shadow-xs ${
+            input.className = `w-full bg-white border border-[#E6E2DC] rounded-md px-2 py-1 outline-none text-[#4A4A4A] font-medium shadow-2xs ${
                 isWeek ? 'text-sm py-1.5 px-3' : 'text-xs'
             }`;
 
@@ -512,7 +511,7 @@
             const input = document.createElement('input');
             input.type = 'text';
             input.value = assign.name;
-            input.className = `w-full bg-white border border-stone-300 rounded px-1 py-0.5 outline-none font-medium text-stone-800 ${
+            input.className = `w-full bg-white border border-[#E6E2DC] rounded px-1 py-0.5 outline-none font-medium text-[#4A4A4A] ${
                 isWeek ? 'text-sm' : 'text-xs'
             }`;
 
@@ -562,13 +561,13 @@
             if (mode === 'mobile') {
                 container.classList.remove('max-w-full');
                 container.classList.add('max-w-md');
-                btnMobile.className = "px-2.5 py-1 rounded-lg bg-white text-stone-800 font-bold shadow-xs";
-                btnDesktop.className = "px-2.5 py-1 rounded-lg text-stone-600 hover:bg-[#f2ece1]";
+                btnMobile.className = "px-2.5 py-1 rounded-lg bg-white text-[#4A4A4A] font-bold shadow-2xs";
+                btnDesktop.className = "px-2.5 py-1 rounded-lg text-[#7A746B] hover:bg-[#F2EFEA]";
             } else {
                 container.classList.remove('max-w-md');
                 container.classList.add('max-w-full');
-                btnDesktop.className = "px-2.5 py-1 rounded-lg bg-white text-stone-800 font-bold shadow-xs";
-                btnMobile.className = "px-2.5 py-1 rounded-lg text-stone-600 hover:bg-[#f2ece1]";
+                btnDesktop.className = "px-2.5 py-1 rounded-lg bg-white text-[#4A4A4A] font-bold shadow-2xs";
+                btnMobile.className = "px-2.5 py-1 rounded-lg text-[#7A746B] hover:bg-[#F2EFEA]";
             }
             saveToStorage(false);
             renderCalendar();
@@ -581,12 +580,12 @@
             const weekHeader = document.getElementById('week-header-row');
             
             if (mode === 'month') {
-                btnMonth.className = "px-3 py-1 rounded-lg font-bold text-xs bg-white text-stone-800 shadow-sm";
-                btnWeek.className = "px-3 py-1 rounded-lg font-bold text-xs text-stone-600 hover:bg-[#f2ece1]";
+                btnMonth.className = "px-3 py-1 rounded-lg font-bold text-xs bg-white text-[#4A4A4A] shadow-2xs";
+                btnWeek.className = "px-3 py-1 rounded-lg font-bold text-xs text-[#7A746B] hover:bg-[#F2EFEA]";
                 weekHeader.classList.remove('hidden');
             } else {
-                btnWeek.className = "px-3 py-1 rounded-lg font-bold text-xs bg-white text-stone-800 shadow-sm";
-                btnMonth.className = "px-3 py-1 rounded-lg font-bold text-xs text-stone-600 hover:bg-[#f2ece1]";
+                btnWeek.className = "px-3 py-1 rounded-lg font-bold text-xs bg-white text-[#4A4A4A] shadow-2xs";
+                btnMonth.className = "px-3 py-1 rounded-lg font-bold text-xs text-[#7A746B] hover:bg-[#F2EFEA]";
                 weekHeader.classList.add('hidden');
             }
             renderCalendar();
@@ -736,12 +735,12 @@
 
                 if (state.viewMode === 'month') {
                     cellEl.className = `fresh-cell p-2 flex flex-col justify-between transition-all min-h-[120px] group ${
-                        !cell.isCurrentMonth ? 'opacity-30 bg-[#f3efe6]' : ''
+                        !cell.isCurrentMonth ? 'opacity-30 bg-[#F7F5F0]' : ''
                     } ${isToday ? 'today' : ''}`;
 
                     const isWeekend = cell.date.getDay() === 0 || cell.date.getDay() === 6;
                     let dayNumClass = "text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center pointer-events-none ";
-                    dayNumClass += isToday ? "bg-[#5b7c99] text-white shadow-xs" : (isWeekend ? "text-rose-500" : "text-stone-700");
+                    dayNumClass += isToday ? "bg-[#8A9A86] text-white shadow-2xs" : (isWeekend ? "text-[#B87C67]" : "text-[#5C5750]");
 
                     const taskListContainer = document.createElement('div');
                     taskListContainer.className = "space-y-1.5 my-1.5 overflow-y-auto no-scrollbar flex-1 flex flex-col justify-start";
@@ -757,17 +756,16 @@
                         card.onclick = (e) => toggleTaskDone(dateStr, assign.id, e);
                         card.ondblclick = (e) => startInlineEdit(dateStr, assign.id, e);
 
-                        // 新增修改 (Pencil) 按鈕
                         card.innerHTML = `
-                            <span class="truncate pr-12 pointer-events-none font-medium">${assign.name}</span>
-                            <div class="no-print absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 transition-opacity flex items-center gap-1 bg-white/90 backdrop-blur-xs px-1 rounded border border-stone-200 shadow-xs">
-                                <button onclick="startInlineEdit('${dateStr}', '${assign.id}', event)" title="修改內容" class="text-stone-500 hover:text-stone-800 text-[10px]">
+                            <span class="truncate pr-14 pointer-events-none font-medium">${assign.name}</span>
+                            <div class="no-print absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 transition-opacity flex items-center gap-1 bg-white/90 backdrop-blur-xs px-1 rounded border border-[#E6E2DC] shadow-2xs">
+                                <button onclick="startInlineEdit('${dateStr}', '${assign.id}', event)" title="修改內容" class="text-[#7A746B] hover:text-[#4A4A4A] text-[10px]">
                                     <i class="fa-solid fa-pen"></i>
                                 </button>
-                                <button onclick="copyAssignment('${dateStr}', '${assign.id}', event)" title="複製進度" class="text-stone-500 hover:text-stone-800 text-[10px]">
+                                <button onclick="copyAssignment('${dateStr}', '${assign.id}', event)" title="複製進度" class="text-[#7A746B] hover:text-[#4A4A4A] text-[10px]">
                                     <i class="fa-regular fa-copy"></i>
                                 </button>
-                                <button onclick="removeAssignment('${dateStr}', '${assign.id}', event)" title="刪除進度" class="text-stone-500 hover:text-rose-600 text-[10px]">
+                                <button onclick="removeAssignment('${dateStr}', '${assign.id}', event)" title="刪除進度" class="text-[#7A746B] hover:text-[#B87C67] text-[10px]">
                                     <i class="fa-solid fa-xmark"></i>
                                 </button>
                             </div>
@@ -778,10 +776,10 @@
                     });
 
                     const headerEl = document.createElement('div');
-                    headerEl.className = "flex justify-between items-center border-b border-[#eee8dd] pb-1 pointer-events-none";
+                    headerEl.className = "flex justify-between items-center border-b border-[#E6E2DC] pb-1 pointer-events-none";
                     headerEl.innerHTML = `
                         <span class="${dayNumClass}">${cell.date.getDate()}</span>
-                        <button onclick="showInlineInput('${dateStr}', event)" class="pointer-events-auto no-print fresh-btn text-stone-600 text-xs w-5 h-5 rounded-md flex items-center justify-center font-bold">
+                        <button onclick="showInlineInput('${dateStr}', event)" class="pointer-events-auto no-print fresh-btn text-[#7A746B] text-xs w-5 h-5 rounded-md flex items-center justify-center font-bold">
                             <i class="fa-solid fa-plus text-[10px]"></i>
                         </button>
                     `;
@@ -815,17 +813,16 @@
                         card.onclick = (e) => toggleTaskDone(dateStr, assign.id, e);
                         card.ondblclick = (e) => startInlineEdit(dateStr, assign.id, e);
 
-                        // 週視角修改按鈕
                         card.innerHTML = `
-                            <span class="pr-16 pointer-events-none font-medium">${assign.name}</span>
-                            <div class="no-print absolute right-1.5 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 transition-opacity flex items-center gap-1.5 bg-white/90 backdrop-blur-xs px-1.5 py-0.5 rounded border border-stone-200 shadow-xs">
-                                <button onclick="startInlineEdit('${dateStr}', '${assign.id}', event)" title="修改內容" class="text-stone-500 hover:text-stone-800 text-xs">
+                            <span class="pr-20 pointer-events-none font-medium">${assign.name}</span>
+                            <div class="no-print absolute right-1.5 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 transition-opacity flex items-center gap-1.5 bg-white/90 backdrop-blur-xs px-1.5 py-0.5 rounded border border-[#E6E2DC] shadow-2xs">
+                                <button onclick="startInlineEdit('${dateStr}', '${assign.id}', event)" title="修改內容" class="text-[#7A746B] hover:text-[#4A4A4A] text-xs">
                                     <i class="fa-solid fa-pen"></i>
                                 </button>
-                                <button onclick="copyAssignment('${dateStr}', '${assign.id}', event)" title="複製進度" class="text-stone-500 hover:text-stone-800 text-xs">
+                                <button onclick="copyAssignment('${dateStr}', '${assign.id}', event)" title="複製進度" class="text-[#7A746B] hover:text-[#4A4A4A] text-xs">
                                     <i class="fa-regular fa-copy"></i>
                                 </button>
-                                <button onclick="removeAssignment('${dateStr}', '${assign.id}', event)" title="刪除進度" class="text-stone-500 hover:text-rose-600 text-xs">
+                                <button onclick="removeAssignment('${dateStr}', '${assign.id}', event)" title="刪除進度" class="text-[#7A746B] hover:text-[#B87C67] text-xs">
                                     <i class="fa-solid fa-xmark"></i>
                                 </button>
                             </div>
@@ -836,14 +833,14 @@
                     });
 
                     const sideHeader = document.createElement('div');
-                    sideHeader.className = "flex flex-col items-center justify-center bg-[#f2ece1] border border-[#e5dccf] rounded-xl p-2 min-w-[60px] pointer-events-none";
+                    sideHeader.className = "flex flex-col items-center justify-center bg-[#F2EFEA] border border-[#E6E2DC] rounded-xl p-2 min-w-[60px] pointer-events-none";
                     sideHeader.innerHTML = `
-                        <span class="text-xs font-bold text-stone-500">週${weekNames[cell.date.getDay()]}</span>
-                        <span class="text-lg font-bold ${isWeekend ? 'text-rose-500' : 'text-stone-800'}">${cell.date.getDate()}</span>
+                        <span class="text-xs font-bold text-[#7A746B]">週${weekNames[cell.date.getDay()]}</span>
+                        <span class="text-lg font-bold ${isWeekend ? 'text-[#B87C67]' : 'text-[#4A4A4A]'}">${cell.date.getDate()}</span>
                     `;
 
                     const addBtn = document.createElement('button');
-                    addBtn.className = "fresh-btn text-stone-700 text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1";
+                    addBtn.className = "fresh-btn text-[#7A746B] text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1";
                     addBtn.innerHTML = `<i class="fa-solid fa-plus pointer-events-none text-[10px]"></i> 新增進度`;
                     addBtn.onclick = (e) => showInlineInput(dateStr, e);
 
